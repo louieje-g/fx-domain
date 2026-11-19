@@ -42,11 +42,11 @@ byId("sort").onchange = () => {
   render();
 };
 let periods;
-const historyKey = storageKey + '-history';
+const historyKey = storageKey + '-finviz-periods-v1';
 let nextHistoryCheck = 0;
 let loadingHistory = false;
 function validHistory(h) {
-  return h && [h.week,h.month,h.end].every(d => typeof d==='string' && /^\d{4}-\d\d-\d\d$/.test(d)) &&
+  return h?.source === (demo ? "Fixture" : "Finviz") && Number.isFinite(Date.parse(h.fetchedAt)) &&
     codes.every((base,i)=>codes.slice(i+1).every(quote=>{
       const pair=h.returns?.[base+'/'+quote];
       return Number.isFinite(pair?.week) && Number.isFinite(pair?.month);
@@ -54,7 +54,7 @@ function validHistory(h) {
 }
 function historyStatus(prefix) {
   byId('history-status').textContent = prefix + (periods ?
-    ' · Through '+periods.end+' · Week from '+periods.week+' · Month from '+periods.month : '');
+    ' · Retrieved '+new Date(periods.fetchedAt).toLocaleString() : '');
 }
 try {
   const saved=JSON.parse(localStorage.getItem(historyKey));
@@ -70,7 +70,7 @@ async function refreshHistory() {
     if(!validHistory(h)) throw Error();
     periods=h;
     try { localStorage.setItem(historyKey,JSON.stringify(h)); } catch {}
-    historyStatus(demo ? 'Fixture history' : 'Frankfurter reference rates');
+    historyStatus(demo ? 'Fixture history' : 'Finviz weekly and monthly performance');
     nextHistoryCheck=Date.now()+3600000;
   } catch {
     historyStatus(periods ? 'Cached history' : 'Historical returns unavailable');
@@ -82,7 +82,8 @@ function periodCell(pair, period) {
   if(value===undefined) return '<td aria-label="Historical return unavailable">—</td>';
   const label = !pair.gap ? 'No daily bias' : !value ? 'Flat' :
     Math.sign(value)===Math.sign(pair.gap) ? 'Supports' : 'Opposes';
-  return '<td>'+signed(value)+'%<small class="legs">'+label+'</small></td>';
+  const basis = demo ? 'Fixture' : periods.returns[pair.name].direct ? 'Finviz pair return' : 'Calculated from Finviz USD pairs';
+  return '<td title='+JSON.stringify(basis)+'>'+signed(value)+'%<small class="legs">'+label+'</small></td>';
 }
 function render() {
   if (!snapshot) return;
@@ -211,4 +212,6 @@ switcher.onclick = () => {
   syncThemeButton();
 };
 syncThemeButton();
+
+
 

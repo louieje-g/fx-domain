@@ -42,7 +42,7 @@ test("production dashboard: controls, snapshots, layout and offline reload", asy
       (await rows.filter({ hasText: name }).locator("td").allTextContents()).slice(0,3).join(""),
       name + result,
     );
-  await page.waitForFunction(()=>document.querySelector('#history-status').textContent.includes('Through'));
+  await page.waitForFunction(()=>document.querySelector('#history-status').textContent.includes('Retrieved'));
   const eurJpy = rows.filter({hasText:'EUR/JPY'}).locator('td');
   assert.equal(await eurJpy.nth(3).textContent(),'+7.00%Supports');
   assert.equal(await eurJpy.nth(4).textContent(),'-6.14%Opposes');
@@ -133,4 +133,5 @@ test("production dashboard: controls, snapshots, layout and offline reload", asy
   );
   assert.equal(await view.locator("#wide").textContent(), "EUR/GBP0.00 pp");
 });
+
 

@@ -1,4 +1,4 @@
-const cacheName = "fx-domain-shell-v5";
+const cacheName = "fx-domain-shell-v6";
 const shell = [
   "/",
   "/app.js",
@@ -40,4 +40,5 @@ self.addEventListener("fetch", (event) => {
     ),
   );
 });
+
 
