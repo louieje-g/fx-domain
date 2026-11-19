@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#111c32" />
+    <link rel="manifest" href="/manifest.json" />
+    <title>FX Domain | Market overview</title>
+    <script>
+      let preference;
+      try {
+        preference = localStorage.getItem("fx-domain-theme");
+      } catch {}
+      document.documentElement.dataset.theme =
+        (["light", "dark"].includes(preference) && preference) ||
+        (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    </script>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #f3f5f9;
+        color: #19243a;
+        font:
+          16px Inter,
+          "Segoe UI",
+          Arial,
+          sans-serif;
+        font-variant-numeric: tabular-nums;
+      }
+      header {
+        background: #111c32;
+        color: white;
+      }
+      .wrap,
+      main {
+        max-width: 1260px;
+        margin: auto;
+        padding-inline: clamp(16px, 4vw, 56px);
+      }
+      .wrap,
+      .heading,
+      .panel-head,
+      .brand,
+      .legend,
+      .controls {
+        display: flex;
+        align-items: center;
+      }
+      .wrap {
+        height: 64px;
+        gap: 28px;
+      }
+      .brand {
+        gap: 10px;
+        font-size: 22px;
+        letter-spacing: -1px;
+        font-weight: 730;
+      }
+      .logo {
+        width: 32px;
+        height: 32px;
+        border-radius: 9px;
+        background: #7573ff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+      }
+      .logo i {
+        background: white;
+        width: 3px;
+        height: 9px;
+        transform: skew(-12deg);
+      }
+      .logo i:nth-child(2) {
+        height: 18px;
+      }
+      .logo i:last-child {
+        height: 13px;
+      }
+      .workspace {
+        padding-left: 24px;
+        border-left: 1px solid #455066;
+        color: #c6cedd;
+        font-size: 14px;
+      }
+      main {
+        padding-block: 34px;
+      }
+      .heading,
+      .panel-head {
+        justify-content: space-between;
+        gap: 18px;
+      }
+      .eyebrow,
+      th,
+      .metric small {
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: #65728a;
+      }
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+      h1 {
+        font-size: clamp(30px, 4vw, 46px);
+        letter-spacing: -0.055em;
+        line-height: 1.17;
+        margin-top: 6px;
+      }
+      h2 {
+        font-size: 22px;
+        letter-spacing: -0.04em;
+      }
+      .controls {
+        gap: 8px;
+        color: #617087;
+        font-size: 14px;
+      }
+      select,
+      input {
+        background: white;
+        border: 1px solid #cfd6e2;
+        border-radius: 8px;
+        padding: 9px 12px;
+        font: inherit;
+        color: #283852;
+      }
+      section {
+        background: white;
+        border: 1px solid #d9deea;
+        border-radius: 15px;
+        box-shadow: 0 3px 12px #16284306;
+        margin-top: 18px;
+        overflow: hidden;
+      }
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        margin: 22px 0 0;
+        background: #172440;
+        color: white;
+        border: 0;
+      }
+      .metric {
+        padding: 18px 24px;
+      }
+      .metric + .metric {
+        border-left: 1px solid #394660;
+      }
+      .metric small {
+        color: #afbcd2;
+      }
+      .metric strong {
+        display: block;
+        font-size: 23px;
+        letter-spacing: -0.035em;
+        margin-top: 8px;
+      }
+      .metric em {
+        font: 600 14px monospace;
+        color: #b8c6e3;
+        margin-left: 10px;
+      }
+      .panel-head {
+        padding: 22px 24px;
+      }
+      .sub,
+      footer,
+      #status {
+        color: #647188;
+        font-size: 13px;
+      }
+      .sub {
+        margin-top: 5px;
+      }
+      .legend {
+        gap: 14px;
+        font-size: 13px;
+        color: #536079;
+      }
+      .legend span:before {
+        content: "";
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 3px;
+        background: #249a85;
+        margin-right: 6px;
+      }
+      .legend span + span:before {
+        background: #e1836e;
+      }
+      .viewport {
+        overflow-x: auto;
+      }
+      @property --change {
+        syntax: "<percentage>";
+        inherits: true;
+        initial-value: 0%;
+      }
+      .graph {
+        position: relative;
+        height: 230px;
+        margin: 0 24px 12px;
+        padding-right: 56px;
+      }
+      .ticks {
+        position: absolute;
+        inset: 0;
+      }
+      .tick {
+        position: absolute;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        transform: translateY(-50%);
+        font: 11px monospace;
+        color: var(--muted);
+      }
+      .tick span {
+        margin-left: auto;
+        width: 50px;
+        text-align: right;
+      }
+      .tick:before {
+        content: "";
+        flex: 1;
+        border-top: 1px dashed var(--line);
+      }
+      #bars {
+        position: relative;
+        height: 100%;
+      }
+      .column {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 12.5%;
+        text-align: center;
+        transition:
+          transform 850ms cubic-bezier(0.22, 0.8, 0.25, 1),
+          --change 800ms ease;
+        --accent: #197a67;
+        --fill: #53b59d;
+      }
+      .column.negative {
+        --accent: #9d514b;
+        --fill: #d7988c;
+      }
+      .column.neutral {
+        --accent: #546179;
+        --fill: #9ba7be;
+      }
+      .column b {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        left: 2px;
+        right: 2px;
+        padding: 4px 0;
+        border-radius: 4px;
+        background: var(--accent);
+        color: white;
+        font: 650 13px monospace;
+        z-index: 1;
+      }
+      .stick {
+        position: absolute;
+        left: 2px;
+        right: 2px;
+        top: calc(50% - max(0%, var(--change)) - 12px);
+        bottom: calc(50% + min(0%, var(--change)) - 12px);
+        background: color-mix(in srgb, var(--fill) 48%, transparent);
+        border-radius: 4px;
+      }
+      .value {
+        position: absolute;
+        width: 100%;
+        left: 0;
+        top: calc(50% - var(--change) - 29px);
+        color: var(--ink);
+        font: 600 12px monospace;
+      }
+      .negative .value {
+        top: calc(50% - var(--change) + 15px);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .column {
+          transition: none;
+        }
+      }
+      .chart-foot {
+        padding: 10px 24px;
+        background: #fafbfd;
+        border-top: 1px solid #e5e9ef;
+      }
+      .scroll {
+        max-height: 408px;
+        overflow: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 11px 24px;
+      }
+      th {
+        position: sticky;
+        top: 0;
+        background: #f6f8fb;
+      }
+      td {
+        border-top: 1px solid #edf0f4;
+      }
+      td:nth-child(2) {
+        font: 600 15px monospace;
+      }
+      mark {
+        font:
+          700 11px Inter,
+          Arial;
+        letter-spacing: 0.06em;
+        background: #ddf4ed;
+        color: #146b58;
+        border-radius: 5px;
+        padding: 5px 9px;
+      }
+      .sell {
+        background: #fbe9e4;
+        color: #a44532;
+      }
+      .flat {
+        background: #e9edf5;
+        color: #54647a;
+      }
+      footer {
+        padding-top: 15px;
+      }
+      input {
+        width: 200px;
+      }
+      @media (max-width: 650px) {
+        main {
+          padding-block: 22px;
+        }
+        .workspace {
+          margin-left: auto;
+          border: 0;
+          padding: 0;
+        }
+        .metric {
+          padding: 14px 10px;
+        }
+        .metric strong {
+          font-size: 17px;
+        }
+        .metric small {
+          font-size: 10px;
+        }
+        .metric em {
+          display: block;
+          margin: 4px 0 0;
+        }
+        .heading,
+        .panel-head {
+          flex-wrap: wrap;
+        }
+        .panel-head {
+          padding: 18px;
+        }
+        .graph {
+          margin-left: 12px;
+          margin-right: 12px;
+        }
+        .controls,
+        input {
+          font-size: 14px;
+        }
+        th,
+        td {
+          padding: 11px 15px;
+        }
+      }
+
+      :root {
+        --ink: #19243a;
+        --muted: #5a6981;
+        --line: #cad5df;
+        --panel: rgba(255, 255, 255, 0.83);
+        --canvas: #f1f5f8;
+        --glow: #d6e9e6;
+        --soft: #f3f6fa;
+        --buy: #eaf6f0;
+        --sell: #fcf1ef;
+      }
+      :root[data-theme="dark"] {
+        color-scheme: dark;
+        --ink: #ebeff7;
+        --muted: #b1bed0;
+        --line: #39485c;
+        --panel: rgba(24, 35, 52, 0.92);
+        --canvas: #101826;
+        --glow: #19343e;
+        --soft: #202d40;
+        --buy: #1b3434;
+        --sell: #392d36;
+      }
+      body {
+        background:
+          radial-gradient(ellipse at 15% 0, var(--glow), transparent 55%),
+          var(--canvas);
+        color: var(--ink);
+        min-height: 100vh;
+      }
+      section {
+        background: var(--panel);
+        border-color: var(--line);
+        backdrop-filter: blur(12px);
+      }
+      .summary {
+        background: linear-gradient(110deg, #182c46, #223747 65%, #193f45);
+      }
+      .sub,
+      footer,
+      #status,
+      .controls,
+      .legend,
+      .eyebrow,
+      th {
+        color: var(--muted);
+      }
+      input,
+      select {
+        background: var(--panel);
+        color: var(--ink);
+        border-color: var(--line);
+      }
+      .chart-foot,
+      th {
+        background: var(--soft);
+      }
+      .chart-foot,
+      td {
+        border-color: var(--line);
+      }
+      #theme {
+        margin-left: auto;
+        background: #25334a;
+        color: #e5ecfa;
+        border: 1px solid #56637c;
+        border-radius: 20px;
+        padding: 7px 14px;
+        cursor: pointer;
+        font: 600 14px inherit;
+        font-family: inherit;
+      }
+      tr.long {
+        background: var(--buy);
+      }
+      tr.short {
+        background: var(--sell);
+      }
+      tr.long td:first-child {
+        box-shadow: inset 3px 0 #309780;
+      }
+      tr.short td:first-child {
+        box-shadow: inset 3px 0 #c67e74;
+      }
+      tbody tr:hover {
+        filter: brightness(0.96);
+      }
+      th:last-child,
+      td:last-child {
+        text-align: right;
+      }
+      .graph {
+        margin-top: 10px;
+      }
+      .viewport {
+        overflow: visible;
+      }
+      @media (max-width: 650px) {
+        .workspace {
+          display: none;
+        }
+        .graph {
+          height: 205px;
+          padding-right: 35px;
+          margin: 4px 7px 12px;
+        }
+        .tick span {
+          width: 34px;
+          font-size: 9px;
+        }
+        .column b,
+        .value {
+          font-size: clamp(8px, 2.4vw, 11px);
+        }
+        .column b,
+        .stick {
+          left: 1px;
+          right: 1px;
+        }
+        .value {
+          letter-spacing: -0.05em;
+        }
+      }
+      .scanner-tools {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .scanner-tools label {
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .scanner-tools select {
+        margin-left: 4px;
+      }
+      @media (max-width: 650px) {
+        .scanner-tools {
+          width: 100%;
+        }
+        .scanner-tools input {
+          flex: 1;
+          min-width: 145px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap">
+        <div class="brand">
+          <span class="logo" aria-hidden="true"><i></i><i></i><i></i></span>FX
+          Domain
+        </div>
+        <span class="workspace">Forex workspace</span
+        ><button id="theme" aria-label="Dark theme" aria-pressed="false">
+          Theme
+        </button>
+      </div>
+    </header>
+    <main>
+      <div class="heading">
+        <div>
+          <div class="eyebrow">Currency monitor</div>
+          <h1>Market overview</h1>
+        </div>
+        <label class="controls"
+          >Auto-refresh
+          <select id="interval">
+            <option value="10">10 seconds</option>
+            <option value="30">30 seconds</option>
+            <option value="60">1 minute</option>
+            <option value="0">Paused</option>
+          </select></label
+        >
+      </div>
+      <section class="summary" aria-label="Performance highlights">
+        <div class="metric">
+          <small>Strongest</small><strong id="high">—</strong>
+        </div>
+        <div class="metric">
+          <small>Weakest</small><strong id="low">—</strong>
+        </div>
+        <div class="metric">
+          <small>Widest gap</small><strong id="wide">—</strong>
+        </div>
+      </section>
+      <section>
+        <div class="panel-head">
+          <div>
+            <h2>Relative performance</h2>
+            <p class="sub">1 day · Relative to USD</p>
+          </div>
+          <div class="legend"><span>Gain</span><span>Loss</span></div>
+        </div>
+        <div class="viewport">
+          <div class="graph">
+            <div class="ticks" id="ticks" aria-hidden="true"></div>
+            <div id="bars"></div>
+          </div>
+        </div>
+        <div class="chart-foot">
+          <small id="status" role="status">Connecting to Finviz…</small>
+        </div>
+      </section>
+      <section>
+        <div class="panel-head">
+          <div>
+            <h2>Pair scanner</h2>
+            <p class="sub">28 currency pairs · Gap in percentage points</p>
+          </div>
+          <div class="scanner-tools">
+            <label
+              >Sort by
+              <select id="sort">
+                <option value="wide">Widest gap</option>
+                <option value="narrow">Narrowest gap</option>
+                <option value="high">Highest signed gap</option>
+                <option value="low">Lowest signed gap</option>
+                <option value="az">Pair A–Z</option>
+                <option value="za">Pair Z–A</option>
+              </select></label
+            ><input
+              id="query"
+              type="search"
+              aria-label="Search currency pairs"
+              placeholder="Search currency pairs"
+            />
+          </div>
+        </div>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Currency pair</th>
+                <th>Gap (pp)</th>
+                <th>Bias</th>
+              </tr>
+            </thead>
+            <tbody id="pairs"></tbody>
+          </table>
+        </div>
+      </section>
+      <footer>
+        Source: Finviz · Gap in percentage points = base performance − quote
+        performance.
+      </footer>
+    </main>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

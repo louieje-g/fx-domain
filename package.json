@@ -1,0 +1,28 @@
+{
+  "name": "fx-domain",
+  "version": "1.0.0",
+  "description": "FX Domain personal forex performance dashboard",
+  "main": "server.js",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "start": "node server.js",
+    "fixture": "node server.js --fixture",
+    "build": "node build.js",
+    "production": "node server.js --production",
+    "pretest": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/louieje-g/fx-domain.git"
+  },
+  "keywords": [],
+  "author": "",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/louieje-g/fx-domain/issues"
+  },
+  "homepage": "https://github.com/louieje-g/fx-domain#readme",
+  "devDependencies": {
+    "playwright-core": "^1.65.1"
+  }
+}
