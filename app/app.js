@@ -23,7 +23,12 @@ function snapshotKey() {
 function showFetchStatus(label, cached = false) {
   byId("status").dataset.cached = String(cached);
   byId("feed-label").textContent = label;
-  byId("fetch-time").textContent = snapshot?.time || "";
+  const raw = snapshot?.time;
+  const date = new Date(raw);
+  byId("fetch-time").textContent = Number.isNaN(date.getTime()) ? raw || "" :
+    date.toLocaleString("en-US", {month:"short"}) + ", " +
+    String(date.getDate()).padStart(2,"0") + " " + date.getFullYear() + " · " +
+    date.toLocaleTimeString("en-US");
 }
 function loadFrame() {
   snapshot = undefined;
@@ -61,51 +66,6 @@ byId("sort").onchange = () => {
   } catch {}
   render();
 };
-let periods;
-const historyKey = keyPrefix + '-finviz-periods-v2';
-let nextHistoryCheck = 0;
-let loadingHistory = false;
-function validHistory(h) {
-  return h?.source === (demo ? "Fixture" : "Finviz") && Number.isFinite(Date.parse(h.fetchedAt)) &&
-    codes.every((base,i)=>codes.slice(i+1).every(quote=>{
-      const pair=h.returns?.[base+'/'+quote];
-      return Number.isFinite(pair?.week) && Number.isFinite(pair?.month);
-    }));
-}
-function historyStatus(prefix) {
-  byId('history-status').textContent = prefix + (periods ?
-    ' · Retrieved '+new Date(periods.fetchedAt).toLocaleString() : '');
-}
-try {
-  const saved=JSON.parse(localStorage.getItem(historyKey));
-  if(validHistory(saved)) {periods=saved; historyStatus('Cached history');}
-} catch {}
-async function refreshHistory() {
-  if(loadingHistory || Date.now()<nextHistoryCheck) return;
-  loadingHistory=true;
-  try {
-    const r=await fetch(demo ? '/fixture-history' : '/history',{cache:'no-store',signal:AbortSignal.timeout(8500)});
-    if(!r.ok) throw Error();
-    const h=await r.json();
-    if(!validHistory(h)) throw Error();
-    periods=h;
-    try { localStorage.setItem(historyKey,JSON.stringify(h)); } catch {}
-    historyStatus(demo ? 'Fixture history' : 'Finviz weekly and monthly performance');
-    nextHistoryCheck=Date.parse(h.fetchedAt)+60000;
-  } catch {
-    historyStatus(periods ? 'Cached history' : 'Historical returns unavailable');
-    nextHistoryCheck=Date.now()+60000;
-  } finally { loadingHistory=false; render(); }
-}
-function periodCell(pair, period) {
-  const value=periods?.returns[pair.name][period];
-  if(value===undefined) return '<td aria-label="Historical return unavailable">—</td>';
-  const label = !pair.gap ? 'Neutral bias' : !value ? 'Flat' :
-    Math.sign(value)===Math.sign(pair.gap) ? 'Supports' : 'Opposes';
-  const basis = demo ? 'Fixture' : periods.returns[pair.name].direct ? 'Finviz pair return' : 'Calculated from Finviz USD pairs';
-  const estimate = !demo && !periods.returns[pair.name].direct ? '≈' : '';
-  return '<td title='+JSON.stringify(basis)+'>'+estimate+signed(value)+'%<small class="legs">'+label+'</small></td>';
-}
 function drawAxis(limit) {
   byId("ticks").innerHTML = [1, 0.5, 0, -0.5, -1]
     .map(
@@ -173,15 +133,15 @@ function render() {
           (p.gap < 0 ? "sell" : p.gap === 0 ? "flat" : "") +
           '">' +
           (p.gap > 0 ? "BUY" : p.gap < 0 ? "SELL" : "NEUTRAL") +
-          "</mark></td>" + periodCell(p,"week") + periodCell(p,"month") + "</tr>",
+          "</mark></td></tr>",
       )
-      .join("") || '<tr><td colspan="5">No matching pairs.</td></tr>';
+      .join("") || '<tr><td colspan="3">No matching pairs.</td></tr>';
 }
 async function refresh() {
   if (activeRequest) return;
   const controller = new AbortController();
   activeRequest = controller;
-  void refreshHistory();
+
   try {
     const r = await fetch((demo ? "/fixture-feed" : "/feed") + (frameControl.value === "1" ? "" : "?v="+frameControl.value), {
       cache: "no-store",
@@ -190,7 +150,7 @@ async function refresh() {
     if (!r.ok) throw Error();
     const data = normalize(await r.json());
     if (controller.signal.aborted) return;
-    snapshot = { data, time: new Date().toLocaleString() };
+    snapshot = { data, time: new Date().toISOString() };
     try {
       localStorage.setItem(snapshotKey(), JSON.stringify(snapshot));
     } catch {}

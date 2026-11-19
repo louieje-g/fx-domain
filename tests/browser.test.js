@@ -42,10 +42,8 @@ test("production dashboard: controls, snapshots, layout and offline reload", asy
       (await rows.filter({ hasText: name }).locator("td").allTextContents()).slice(0,3).join(""),
       name + result,
     );
-  await page.waitForFunction(()=>document.querySelector('#history-status').textContent.includes('Retrieved'));
-  const eurJpy = rows.filter({hasText:'EUR/JPY'}).locator('td');
-  assert.equal(await eurJpy.nth(3).textContent(),'+15.22%Supports');
-  assert.equal(await eurJpy.nth(4).textContent(),'-18.75%Opposes');
+  assert.equal(await rows.first().locator("td").count(),3);
+  assert.match(await page.locator("#fetch-time").innerText(),/^[A-Z][a-z]{2}, \d{2} \d{4} · /);
   for(const v of ["2","3","8","4","5","6","7","1"]) {
     await Promise.all([page.waitForResponse(r=>r.url().endsWith(v==="1"?"/fixture-feed":"/fixture-feed?v="+v)),page.selectOption("#frame",v)]);
     await page.waitForSelector("#currency-EUR");
@@ -74,7 +72,7 @@ test("production dashboard: controls, snapshots, layout and offline reload", asy
   }
   await page.click("#theme");
   const theme = await page.locator("html").getAttribute("data-theme");
-  for (const width of [390, 1280]) {
+  for (const width of [320, 390, 420, 1280]) {
     await page.setViewportSize({ width, height: 800 });
     assert.ok(
       await page.evaluate(

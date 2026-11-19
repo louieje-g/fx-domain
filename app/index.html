@@ -544,6 +544,17 @@
 [data-theme=dark] .feed-toolbar #status {background:#193d39; color:#c1ffeb; border-color:#56dbb0}
 .feed-toolbar #status[data-cached=true] {background:#fff0cf; color:#5d3900; border-color:#a16a07}
 [data-theme=dark] .feed-toolbar #status[data-cached=true] {background:#443620; color:#ffe2a6; border-color:#e2af50}
+.feed-toolbar #status { margin-left:auto; }
+@media(max-width:650px) {
+  .feed-toolbar { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+  .feed-toolbar label { display:grid; gap:5px; font-size:.875rem; }
+  .feed-toolbar select { width:100%; margin:0; min-height:44px; }
+  .feed-toolbar #status { grid-column:1/-1; margin:0; }
+  .scanner-tools { display:grid; grid-template-columns:1fr; gap:8px; }
+  .scanner-tools label { display:grid; grid-template-columns:auto 1fr; align-items:center; gap:8px; }
+  .scanner-tools input,.scanner-tools select { width:100%; min-width:0; min-height:44px; margin:0; }
+  .scroll th,.scroll td { padding:10px 8px; }
+}
 </style>
   </head>
   <body>
@@ -565,7 +576,9 @@
           <div class="eyebrow">Currency monitor</div>
           <h1>Market overview</h1>
         </div>
-        <label class="controls"
+        
+      </div>
+      <div class="feed-toolbar"><label class="controls"
           >Auto-refresh
           <select id="interval">
             <option value="10">10 seconds</option>
@@ -573,9 +586,7 @@
             <option value="60">1 minute</option>
             <option value="0">Paused</option>
           </select></label
-        >
-      </div>
-      <div class="feed-toolbar"><label class="period-control">Time frame
+        ><label class="period-control">Time frame
 <select id="frame"><option value="1">Daily</option><option value="2">Weekly</option><option value="3">Monthly</option><option value="8">Month to date</option><option value="4">Quarter</option><option value="5">Half year</option><option value="6">Year</option><option value="7">Year to date</option></select></label>
       <div id="status" role="status"><span id="feed-label">Connecting to Finviz…</span> <strong id="fetch-time"></strong></div></div>
       <section class="summary" aria-label="Performance highlights">
@@ -629,13 +640,13 @@
             />
           </div>
         </div>
-        <p class="bias-key">Gap = first currency return minus second currency return. A positive gap means BUY, a negative gap means SELL, and a gap rounded to zero means NEUTRAL.</p><p class="bias-key" id="history-status">Loading Finviz performance…</p><p class="bias-key">Weekly and monthly returns use Finviz currency performance relative to USD. ≈ indicates a calculated pair return. Supports and Opposes compare its direction with the selected bias.</p><div class="scroll">
+        <div class="scroll">
           <table>
             <thead>
               <tr>
                 <th>Currency pair</th>
                 <th>Gap (pp)</th>
-                <th id="bias-heading">Daily bias</th><th>1 week</th><th>1 month</th>
+                <th id="bias-heading">Daily bias</th>
               </tr>
             </thead>
             <tbody id="pairs"></tbody>
