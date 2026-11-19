@@ -7,14 +7,14 @@ export default {
     const url = new URL(request.url);
     if (request.headers.get("Origin") !== "https://fx-domain.web.app")
       return new Response("Forbidden", {status:403});
-    if (url.pathname === "/alerts") return env.FEED.getByName("all-currencies").fetch(request);
+    if (url.pathname === "/alerts") return env.FEED.getByName("market-monitor").fetch(request);
     if (url.pathname !== "/feed") return new Response("Not found", {status:404});
     if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket")
       return new Response("WebSocket required", {status:426});
     if (!/^[1-8]$/.test(url.searchParams.get("v")) ||
         !["5","10","30","60"].includes(url.searchParams.get("seconds")))
       return new Response("Invalid subscription", {status:400});
-    return env.FEED.getByName("all-currencies").fetch(request);
+    return env.FEED.getByName("market-monitor").fetch(request);
   }
 };
 
