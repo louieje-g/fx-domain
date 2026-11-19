@@ -1,4 +1,4 @@
-const cacheName = "fx-domain-shell-v17-" + self.registration.scope;
+const cacheName = "fx-domain-shell-local-build-" + self.registration.scope;
 const shell = [
   "./",
   "./index.html",
@@ -12,7 +12,7 @@ self.addEventListener("install", (event) =>
   event.waitUntil(
     caches
       .open(cacheName)
-      .then((cache) => cache.addAll(shell))
+      .then((cache) => cache.addAll(shell.map(path => new Request(path, {cache: "reload"}))))
       .then(() => self.skipWaiting()),
   ),
 );
@@ -20,7 +20,7 @@ self.addEventListener("activate", (event) =>
   event.waitUntil(
     (async () => {
       for (const name of await caches.keys()) {
-        if ((name.endsWith(self.registration.scope) || (self.registration.scope === self.location.origin + "/" && /^fx-domain-shell-v\d+$/.test(name))) && name !== cacheName)
+        if (name.startsWith("fx-domain-shell-") && (name.endsWith(self.registration.scope) || (self.registration.scope === self.location.origin + "/" && /^fx-domain-shell-v\d+$/.test(name))) && name !== cacheName)
           await caches.delete(name);
       }
       await self.clients.claim();

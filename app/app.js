@@ -256,8 +256,22 @@ query.oninput = () => {
 if (interval.value === "0" && !snapshot) showFetchStatus("Paused · Waiting for data");
 render();
 schedule();
-if ("serviceWorker" in navigator)
-  navigator.serviceWorker.register("./sw.js").catch(() => {});
+if ("serviceWorker" in navigator) {
+  const workers = navigator.serviceWorker;
+  let controlled = Boolean(workers.controller);
+  workers.addEventListener("controllerchange", () => {
+    if (controlled) location.reload();
+    controlled = true;
+  });
+  workers.register("./sw.js", {updateViaCache: "none"}).then(registration => {
+    if (!registration) return;
+    const check = () => {
+      if (document.visibilityState === "visible") registration.update().catch(() => {});
+    };
+    document.addEventListener("visibilitychange", check);
+    setInterval(check, 60000);
+  }).catch(() => {});
+}
 
 const switcher = byId("theme");
 function syncThemeButton() {
