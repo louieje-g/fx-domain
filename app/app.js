@@ -106,16 +106,22 @@ function periodCell(pair, period) {
   const estimate = !demo && !periods.returns[pair.name].direct ? '≈' : '';
   return '<td title='+JSON.stringify(basis)+'>'+estimate+signed(value)+'%<small class="legs">'+label+'</small></td>';
 }
-byId("ticks").innerHTML = [1, 0.5, 0, -0.5, -1]
+function drawAxis(limit) {
+  byId("ticks").innerHTML = [1, 0.5, 0, -0.5, -1]
     .map(
       (ratio) =>
-        `<div class="tick ${ratio === 0 ? "zero" : ""}" style="top:${50 - 37 * ratio}%"><span>${signed(ratio)}%</span></div>`,
+        `<div class="tick ${ratio === 0 ? "zero" : ""}" style="top:${50 - 37 * ratio}%"><span>${signed(ratio * limit)}%</span></div>`,
     )
     .join("");
+
+}
+drawAxis(1);
 
 function render() {
   if (!snapshot) return;
   const values = snapshot.data;
+  const limit = Math.max(1, Math.ceil(Math.max(...codes.map(code => Math.abs(values[code])))));
+  drawAxis(limit);
   const ranked = [...codes].sort((a, b) => values[b] - values[a]);
   byId("chart-period").textContent = frameControl.selectedOptions[0].textContent + " · Relative to USD";
   ranked.forEach((code, rank) => {
@@ -133,7 +139,7 @@ function render() {
     column.className =
       "column " + (value < 0 ? "negative" : value > 0 ? "positive" : "neutral");
     column.style.transform = "translateX(" + rank * 100 + "%)";
-    column.style.setProperty("--change", 37 * Math.max(-1, Math.min(1, value)) + "%");
+    column.style.setProperty("--change", 37 * (value / limit) + "%");
     column.querySelector(".value").textContent = signed(value) + "%";
   });
   for (const [id, code] of [
