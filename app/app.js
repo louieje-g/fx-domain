@@ -182,8 +182,24 @@ frameControl.onchange = () => {
   if (byId("interval").value === "0") refresh();
 };
 loadFrame();
-byId("interval").onchange = schedule;
-byId("query").oninput = render;
+const interval = byId("interval");
+const query = byId("query");
+try {
+  const savedInterval = localStorage.getItem("fx-refresh-interval");
+  if (Array.from(interval.options).some(option => option.value === savedInterval)) {
+    interval.value = savedInterval;
+  }
+  query.value = localStorage.getItem("fx-pair-query") ?? "";
+} catch {}
+interval.onchange = () => {
+  try { localStorage.setItem("fx-refresh-interval", interval.value); } catch {}
+  schedule();
+};
+query.oninput = () => {
+  try { localStorage.setItem("fx-pair-query", query.value); } catch {}
+  render();
+};
+if (interval.value === "0" && !snapshot) showFetchStatus("Paused · Waiting for data");
 render();
 schedule();
 if ("serviceWorker" in navigator)

@@ -89,12 +89,24 @@ test("production dashboard: controls, snapshots, layout and offline reload", asy
         }),
       );
   });
+  assert.equal(await page.inputValue("#interval"),"10");
+  await page.selectOption("#interval","5");
+  await page.fill("#query","JPY");
+  await page.selectOption("#frame","2");
+  await page.reload();
+  assert.equal(await page.inputValue("#interval"),"5");
+  assert.equal(await page.inputValue("#frame"),"2");
+  await page.waitForSelector("#pairs td b");
+  assert.equal(await rows.count(),7);
+  await page.selectOption("#interval","0");
   await context.setOffline(true);
   await page.reload();
   await page.waitForFunction(() =>
     document.querySelector("#status").textContent.includes("Cached"),
   );
-  assert.equal(await rows.count(), 28);
+  assert.equal(await rows.count(), 7);
+  assert.equal(await page.inputValue("#interval"), "0");
+  assert.equal(await page.inputValue("#query"), "JPY");
   assert.equal(await page.inputValue("#sort"), "za");
   assert.equal(await page.locator("html").getAttribute("data-theme"), theme);
   const live = await browser.newContext({ serviceWorkers: "block" });
