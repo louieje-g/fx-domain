@@ -76,10 +76,10 @@ byId("sort").onchange = () => {
   render();
 };
 function drawAxis(limit) {
-  byId("ticks").innerHTML = [1, 0.5, 0, -0.5, -1]
+  byId("ticks").innerHTML = [1, 0.8, 0.6, 0.4, 0.2, 0, -0.2, -0.4, -0.6, -0.8, -1]
     .map(
       (ratio) =>
-        `<div class="tick ${ratio === 0 ? "zero" : ""}" style="top:${50 - 37 * ratio}%"><span>${signed(ratio * limit)}%</span></div>`,
+        `<div class="tick ${ratio === 0 ? "zero" : ""}" style="top:calc(${50 - 37 * ratio}% - ${Math.sign(ratio)} * var(--badge-half))"><span>${signed(ratio * limit)}%</span></div>`,
     )
     .join("");
 

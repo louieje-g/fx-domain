@@ -212,7 +212,7 @@
       }
       .graph {
         position: relative;
-        height: 230px;
+        height: 360px;
         margin: 0 24px 12px;
         padding-right: 56px;
       }
@@ -280,8 +280,8 @@
         position: absolute;
         left: 2px;
         right: 2px;
-        top: calc(50% - max(12px, var(--change)));
-        bottom: calc(50% + min(-12px, var(--change)));
+        top: calc(50% - max(0%, var(--change)));
+        bottom: calc(50% + min(0%, var(--change)));
         background: color-mix(in srgb, var(--fill) var(--bar-fill, 20%), transparent);
         transition: background-color 800ms ease;
         border-radius: 4px;
@@ -500,7 +500,7 @@
           display: none;
         }
         .graph {
-          height: 205px;
+          height: 325px;
           padding-right: 35px;
           margin: 4px 7px 12px;
         }
@@ -650,6 +650,15 @@
 .clear-actions button {font:inherit;font-weight:600;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:8px;min-height:44px;padding:8px 14px;cursor:pointer}
 .clear-actions .confirm-clear {color:white;background:#ad3537;border-color:transparent}
 .clear-actions button:focus-visible {outline:2px solid var(--action);outline-offset:2px}
+.graph {--badge-half:12px}
+.column.positive .stick, .column.negative b {border-radius:4px 4px 0 0}
+.column.negative .stick, .column.positive b {border-radius:0 0 4px 4px}
+.column b {height:calc(2 * var(--badge-half));box-sizing:border-box;padding-block:0;display:grid;place-items:center}
+.column .stick {top:auto;bottom:calc(50% + var(--badge-half));height:max(0%, var(--change))}
+.column.negative .stick {bottom:auto;top:calc(50% + var(--badge-half));height:max(0%, calc(-1 * var(--change)))}
+@media(max-width:650px){.graph {--badge-half:10px}}
+.column .value {top:calc(50% - var(--change) - var(--badge-half) - 18px)}
+.column.negative .value {top:calc(50% - var(--change) + var(--badge-half) + 3px)}
 </style>
   </head>
   <body>
