@@ -7,8 +7,8 @@ const shell = [
   "./trends.js",
   "./model.js",
   "./manifest.json",
-  "./icon192.png",
-  "./icon512.png",
+  "./icon192.png?v=purple-mark",
+  "./icon512.png?v=purple-mark",
 ].map(path => new URL(path,self.registration.scope).pathname);
 self.addEventListener("install", (event) =>
   event.waitUntil(
@@ -50,14 +50,14 @@ self.addEventListener("fetch", (event) => {
 self.addEventListener("push", event => {
   const payload=event.data.json();
   if(payload.type==="test") {
-    event.waitUntil(self.registration.showNotification("FX Domain test notification",{body:"Gap alerts can reach this device.",icon:"./icon192.png"}));
+    event.waitUntil(self.registration.showNotification("FX Domain test notification",{body:"Gap alerts can reach this device.",icon:"./icon192.png?v=purple-mark"}));
     return;
   }
   const {pair,frame,threshold,gap} = payload;
   const period = ["","Daily","Weekly","Monthly","Quarter","Half year","Year","Year to date","Month to date"][frame];
   event.waitUntil(self.registration.showNotification(pair+" · "+period+" gap alert", {
     body:"Absolute gap "+(payload.direction==="down"?"fell":"rose")+" to "+gap.toFixed(2)+" pp (threshold "+threshold.toFixed(2)+" pp).",
-    icon:"./icon192.png"
+    icon:"./icon192.png?v=purple-mark"
   }));
 });
 self.addEventListener("notificationclick", event => {
