@@ -39,9 +39,13 @@ test("production dashboard: controls, snapshots, layout and offline reload", asy
     ["GBP/AUD", "GBP +0.20% · AUD +0.20%0.00NEUTRAL"],
   ])
     assert.equal(
-      await rows.filter({ hasText: name }).textContent(),
+      (await rows.filter({ hasText: name }).locator("td").allTextContents()).slice(0,3).join(""),
       name + result,
     );
+  await page.waitForFunction(()=>document.querySelector('#history-status').textContent.includes('Through'));
+  const eurJpy = rows.filter({hasText:'EUR/JPY'}).locator('td');
+  assert.equal(await eurJpy.nth(3).textContent(),'+7.00%Supports');
+  assert.equal(await eurJpy.nth(4).textContent(),'-6.14%Opposes');
   for (const [q, n] of [
     ["jpy", 7],
     ["eur/usd", 1],
@@ -129,3 +133,4 @@ test("production dashboard: controls, snapshots, layout and offline reload", asy
   );
   assert.equal(await view.locator("#wide").textContent(), "EUR/GBP0.00 pp");
 });
+

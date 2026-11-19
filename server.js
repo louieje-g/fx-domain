@@ -1,3 +1,4 @@
+import {historicalFeed,fixtureHistory} from './history.js';
 import http from "node:http";
 import { readFile } from "node:fs/promises";
 import { feed, fixtureResponse } from "./feed.js";
@@ -28,6 +29,14 @@ const server = http
           .end(await reply.text());
         return;
       }
+      if (url.pathname === '/history' || url.pathname === '/fixture-history') {
+        res.setHeader('Cache-Control','no-store');
+        res.setHeader('Content-Type','application/json');
+        try {
+          res.end(JSON.stringify(url.pathname === '/history' ? await historicalFeed() : fixtureHistory()));
+        } catch { res.writeHead(502).end('{"error":"History unavailable"}'); }
+        return;
+      }
       const file = url.pathname.slice(1) || "index.html";
       if (!Object.hasOwn(types, file)) {
         res.writeHead(404).end();
@@ -52,3 +61,4 @@ const server = http
         (process.argv.includes("--fixture") ? "?mode=fixture" : ""),
     ),
   );
+

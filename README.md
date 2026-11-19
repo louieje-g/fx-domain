@@ -37,3 +37,7 @@ GET /feed reads https://finviz.com/api/forex_perf with a 7-second timeout. The o
 The browser checks immediately and every 10 seconds by default. Its 8.5-second timeout and in-flight guard bound each refresh. The provider’s own update frequency is unverified. Pausing stops future checks. A failed check retains the previous successful timestamp and values. After one successful visit and service worker installation, the shell can reopen offline on localhost or HTTPS. Clearing browser site data removes the cached readings.
 
 The scanner produces 28 fixed-orientation pairs, rounds base minus quote to two decimal places in percentage points, and uses the sign for BUY, SELL or NEUTRAL. These labels describe relative performance. The fixture produces EUR +0.50%, JPY -0.40%, and EUR/JPY +0.90 pp.
+
+## Weekly and monthly pair performance
+
+Frankfurter USD reference rates supply each cross rate (quote per USD divided by base per USD). The scanner shows the percentage change from seven days and one calendar month before the latest published observation. Month-end dates are clamped, and weekends and holidays use the most recent prior publication. The displayed dates identify all three observations. Supports and Opposes compare the rounded return direction to the daily Finviz bias. Historical rates refresh hourly while polling is active and are cached separately for offline use.

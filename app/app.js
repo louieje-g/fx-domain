@@ -41,6 +41,49 @@ byId("sort").onchange = () => {
   } catch {}
   render();
 };
+let periods;
+const historyKey = storageKey + '-history';
+let nextHistoryCheck = 0;
+let loadingHistory = false;
+function validHistory(h) {
+  return h && [h.week,h.month,h.end].every(d => typeof d==='string' && /^\d{4}-\d\d-\d\d$/.test(d)) &&
+    codes.every((base,i)=>codes.slice(i+1).every(quote=>{
+      const pair=h.returns?.[base+'/'+quote];
+      return Number.isFinite(pair?.week) && Number.isFinite(pair?.month);
+    }));
+}
+function historyStatus(prefix) {
+  byId('history-status').textContent = prefix + (periods ?
+    ' · Through '+periods.end+' · Week from '+periods.week+' · Month from '+periods.month : '');
+}
+try {
+  const saved=JSON.parse(localStorage.getItem(historyKey));
+  if(validHistory(saved)) {periods=saved; historyStatus('Cached history');}
+} catch {}
+async function refreshHistory() {
+  if(loadingHistory || Date.now()<nextHistoryCheck) return;
+  loadingHistory=true;
+  try {
+    const r=await fetch(demo ? '/fixture-history' : '/history',{cache:'no-store',signal:AbortSignal.timeout(8500)});
+    if(!r.ok) throw Error();
+    const h=await r.json();
+    if(!validHistory(h)) throw Error();
+    periods=h;
+    try { localStorage.setItem(historyKey,JSON.stringify(h)); } catch {}
+    historyStatus(demo ? 'Fixture history' : 'Frankfurter reference rates');
+    nextHistoryCheck=Date.now()+3600000;
+  } catch {
+    historyStatus(periods ? 'Cached history' : 'Historical returns unavailable');
+    nextHistoryCheck=Date.now()+60000;
+  } finally { loadingHistory=false; render(); }
+}
+function periodCell(pair, period) {
+  const value=periods?.returns[pair.name][period];
+  if(value===undefined) return '<td aria-label="Historical return unavailable">—</td>';
+  const label = !pair.gap ? 'No daily bias' : !value ? 'Flat' :
+    Math.sign(value)===Math.sign(pair.gap) ? 'Supports' : 'Opposes';
+  return '<td>'+signed(value)+'%<small class="legs">'+label+'</small></td>';
+}
 function render() {
   if (!snapshot) return;
   const values = snapshot.data;
@@ -103,13 +146,14 @@ function render() {
           (p.gap < 0 ? "sell" : p.gap === 0 ? "flat" : "") +
           '">' +
           (p.gap > 0 ? "BUY" : p.gap < 0 ? "SELL" : "NEUTRAL") +
-          "</mark></td></tr>",
+          "</mark></td>" + periodCell(p,"week") + periodCell(p,"month") + "</tr>",
       )
-      .join("") || '<tr><td colspan="3">No matching pairs.</td></tr>';
+      .join("") || '<tr><td colspan="5">No matching pairs.</td></tr>';
 }
 async function refresh() {
   if (busy) return;
   busy = true;
+  void refreshHistory();
   try {
     const r = await fetch(demo ? "/fixture-feed" : "/feed", {
       cache: "no-store",
@@ -167,3 +211,4 @@ switcher.onclick = () => {
   syncThemeButton();
 };
 syncThemeButton();
+

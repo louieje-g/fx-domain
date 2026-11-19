@@ -622,13 +622,13 @@
             />
           </div>
         </div>
-        <p class="bias-key">Gap = first currency return minus second currency return. A positive gap means BUY, a negative gap means SELL, and a gap rounded to zero means NEUTRAL.</p><div class="scroll">
+        <p class="bias-key">Gap = first currency return minus second currency return. A positive gap means BUY, a negative gap means SELL, and a gap rounded to zero means NEUTRAL.</p><p class="bias-key" id="history-status">Loading historical reference rates…</p><div class="scroll">
           <table>
             <thead>
               <tr>
                 <th>Currency pair</th>
                 <th>Gap (pp)</th>
-                <th>Bias</th>
+                <th>Daily bias</th><th>1 week</th><th>1 month</th>
               </tr>
             </thead>
             <tbody id="pairs"></tbody>
@@ -643,3 +643,4 @@
     <script type="module" src="/app.js"></script>
   </body>
 </html>
+
