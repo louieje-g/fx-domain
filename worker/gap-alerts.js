@@ -16,6 +16,14 @@ export class GapAlerts {
       await this.storage.put("push-keys",this.keys);
     }
   }
+  async send(subscription,data,ttl) {
+    const payload=await buildPushPayload({data:JSON.stringify(data),options:{ttl}},subscription,{
+      subject:"https://fx-domain.web.app/",publicKey:this.keys.public,privateKey:this.keys.private.d
+    });
+    const response=await fetch(subscription.endpoint,{...payload,redirect:"manual",signal:AbortSignal.timeout(8000)});
+    if (!response.ok) console.warn("Push provider returned",response.status);
+    return response;
+  }
   async handle(request) {
     const reply = status=>new Response(null,{status,headers});
     if (request.method==="OPTIONS") return reply(204);
@@ -49,10 +57,9 @@ export class GapAlerts {
     } catch {return reply(400);}
     if (request.method==="POST") {
       try {
-        const payload=await buildPushPayload({data:JSON.stringify({type:"test"}),options:{ttl:60}},rule.subscription,{subject:"https://fx-domain.web.app/",publicKey:this.keys.public,privateKey:this.keys.private.d});
-        const result=await fetch(rule.subscription.endpoint,{...payload,redirect:"error",signal:AbortSignal.timeout(8000)});
+        const result=await this.send(rule.subscription,{type:"test"},60);
         return reply(result.ok ? 204 : 502);
-      } catch {return reply(502);}
+      } catch(error) {console.error("Push failed:",error.name,error.message.replace(/https?:\/\/\S+/g,"[URL]"));return reply(502);}
     }
     const previous=this.rules.get(id);
     if (previous?.pair===rule.pair && previous.frame===rule.frame && previous.threshold===rule.threshold) Object.assign(rule,{above:previous.above,lastHit:previous.lastHit ?? null});
@@ -81,10 +88,7 @@ export class GapAlerts {
       if (this.rules.get(id)!==rule || !rule.pending) return;
       {
         try {
-          const payload = await buildPushPayload({
-            data:JSON.stringify({pair:rule.pair,frame,gap,threshold:rule.threshold}), options:{ttl:300}
-          },rule.subscription,{subject:"https://fx-domain.web.app/",publicKey:this.keys.public,privateKey:this.keys.private.d});
-          const response = await fetch(rule.subscription.endpoint,{...payload,redirect:"error",signal:AbortSignal.timeout(8000)});
+          const response=await this.send(rule.subscription,{pair:rule.pair,frame,gap,threshold:rule.threshold},300);
           if (this.rules.get(id)!==rule) return;
           if ([404,410].includes(response.status)) return this.remove(id);
           if (!response.ok) return;
