@@ -275,8 +275,8 @@
         position: absolute;
         left: 2px;
         right: 2px;
-        top: calc(50% - max(0%, var(--change)) - 12px);
-        bottom: calc(50% + min(0%, var(--change)) - 12px);
+        top: calc(50% - max(12px, var(--change)));
+        bottom: calc(50% + min(-12px, var(--change)));
         background: color-mix(in srgb, var(--fill) 48%, transparent);
         border-radius: 4px;
       }

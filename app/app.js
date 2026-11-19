@@ -28,10 +28,10 @@ function showFetchStatus(label, cached = false) {
 function loadFrame() {
   snapshot = undefined;
   const label = frameControl.selectedOptions[0].textContent;
-  byId("chart-period").textContent = label + " · Relative to USD";
+  if (!byId("bars").childElementCount) byId("chart-period").textContent = label + " · Relative to USD";
   byId("scanner-period").textContent = "28 currency pairs · " + label + " performance vs USD";
   byId("bias-heading").textContent = label + " bias";
-  for(const id of ["bars","ticks","pairs"]) byId(id).replaceChildren();
+  byId("pairs").replaceChildren();
   for(const id of ["low","high","wide"]) byId(id).textContent="—";
 try {
   const saved = JSON.parse(localStorage.getItem(snapshotKey()));
@@ -106,19 +106,18 @@ function periodCell(pair, period) {
   const estimate = !demo && !periods.returns[pair.name].direct ? '≈' : '';
   return '<td title='+JSON.stringify(basis)+'>'+estimate+signed(value)+'%<small class="legs">'+label+'</small></td>';
 }
+byId("ticks").innerHTML = [1, 0.5, 0, -0.5, -1]
+    .map(
+      (ratio) =>
+        `<div class="tick ${ratio === 0 ? "zero" : ""}" style="top:${50 - 37 * ratio}%"><span>${signed(ratio)}%</span></div>`,
+    )
+    .join("");
+
 function render() {
   if (!snapshot) return;
   const values = snapshot.data;
   const ranked = [...codes].sort((a, b) => values[b] - values[a]);
-  const peak = Math.max(0.01, ...codes.map((code) => Math.abs(values[code])));
-  const unit = 10 ** Math.floor(Math.log10(peak));
-  const scale = Math.ceil(peak / unit) * unit;
-  byId("ticks").innerHTML = [1, 0.5, 0, -0.5, -1]
-    .map(
-      (ratio) =>
-        `<div class="tick ${ratio === 0 ? "zero" : ""}" style="top:${50 - 37 * ratio}%"><span>${signed(scale * ratio)}%</span></div>`,
-    )
-    .join("");
+  byId("chart-period").textContent = frameControl.selectedOptions[0].textContent + " · Relative to USD";
   ranked.forEach((code, rank) => {
     const value = values[code];
     let column = byId("currency-" + code);
@@ -134,7 +133,7 @@ function render() {
     column.className =
       "column " + (value < 0 ? "negative" : value > 0 ? "positive" : "neutral");
     column.style.transform = "translateX(" + rank * 100 + "%)";
-    column.style.setProperty("--change", (37 * value) / scale + "%");
+    column.style.setProperty("--change", 37 * Math.max(-1, Math.min(1, value)) + "%");
     column.querySelector(".value").textContent = signed(value) + "%";
   });
   for (const [id, code] of [
@@ -193,6 +192,7 @@ async function refresh() {
     showFetchStatus("Last fetched from " + source);
   } catch {
     if (controller.signal.aborted) return;
+    if (!snapshot) { byId("bars").replaceChildren(); byId("chart-period").textContent = frameControl.selectedOptions[0].textContent + " · Relative to USD"; }
     showFetchStatus(snapshot ? "Feed unavailable · Cached · Last fetched from " + source : "Feed unavailable · Waiting for data", Boolean(snapshot));
   } finally {
     if (activeRequest === controller) activeRequest = undefined;
