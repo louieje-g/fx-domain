@@ -44,16 +44,12 @@ test("feed normalizes percent units and rejects whole malformed responses", asyn
   );
 });
 
-test("Finviz direct returns take priority and USD-first legs compound correctly", async () => {
-  const {performanceSnapshot} = await import("../history.js");
-  const rows = [
-    ["EURUSD",-0.22,-1.92], ["GBPUSD",-0.33,-1.09], ["NZDUSD",0.23,-2.30],
-    ["AUDUSD",-0.85,-3.83], ["USDCAD",0.29,1.39], ["USDCHF",0.47,1.91],
-    ["USDJPY",0.14,0.89], ["EURGBP",0.24,-0.82], ["GBPJPY",-0.25,-0.18],
-  ].map(([ticker,perfWeekPct,perfMonthPct])=>({ticker,perfWeekPct,perfMonthPct}));
-  const {returns} = performanceSnapshot(rows);
-  assert.deepEqual(returns["EUR/GBP"],{week:0.24,month:-0.82,direct:true});
-  assert.deepEqual(returns["GBP/JPY"],{week:-0.25,month:-0.18,direct:true});
-  assert.deepEqual(returns["NZD/JPY"],{week:0.37,month:-1.43,direct:false});
-  assert.deepEqual(returns["CAD/JPY"],{week:-0.15,month:-0.49,direct:false});
+test("all eight selectors use the matching Finviz API query",async()=>{
+  for(let v=1;v<=8;v++) {
+    const result=await feed(async url=>{
+      assert.equal(url,"https://finviz.com/api/forex_perf?v="+v);
+      return Response.json(fixture);
+    },String(v));
+    assert.equal(result.status,200);
+  }
 });

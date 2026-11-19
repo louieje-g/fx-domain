@@ -38,6 +38,8 @@ The browser checks immediately and every 10 seconds by default. Its 8.5-second t
 
 The scanner produces 28 fixed-orientation pairs, rounds base minus quote to two decimal places in percentage points, and uses the sign for BUY, SELL or NEUTRAL. These labels describe relative performance. The fixture produces EUR +0.50%, JPY -0.40%, and EUR/JPY +0.90 pp.
 
-## Weekly and monthly pair performance
+## Time frames
 
-The live scanner reads perfWeekPct and perfMonthPct from the [Finviz Forex Performance table](https://finviz.com/forex/performance?tv=1&v=1). It prefers the published pair. For unlisted crosses it divides the base currency USD growth factor by the quote currency USD growth factor, inverting USD-first quotes. Finviz rounds its published inputs, so calculated cross returns are approximate. The scanner shows retrieval time and caches the table for one minute while auto-refresh is active; ≈ identifies calculated crosses. Offline history is accepted only from the matching source.
+The chart, highlights, scanner inputs and bias follow the selected Finviz period. GET /feed?v=N proxies https://finviz.com/api/forex_perf?v=N. Finviz uses 1 for daily, 2 weekly, 3 monthly, 4 quarterly, 5 half-year, 6 yearly, 7 year to date and 8 month to date. Switching periods fetches once even when periodic refresh is paused. The selection and each period's last success are stored locally.
+
+Weekly and monthly comparison columns use the same endpoint with v=2 and v=3. Pair returns use (1 + base return / 100) / (1 + quote return / 100) minus one, expressed as a percentage. The ≈ symbol marks returns calculated from rounded currency readings. The Gap column is the difference in percentage points for the selected period. Comparison data refreshes at most once per minute during polling.

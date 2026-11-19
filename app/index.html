@@ -537,7 +537,7 @@
           min-width: 145px;
         }
       }
-    .legs { display:block; color:var(--muted); font-size:.8125rem; font-weight:400; margin-top:4px; white-space:normal; } .bias-key { margin:0; padding:0 20px 14px; font-size:.875rem; color:var(--muted); line-height:1.45; }</style>
+    .legs { display:block; color:var(--muted); font-size:.8125rem; font-weight:400; margin-top:4px; white-space:normal; } .bias-key { margin:0; padding:0 20px 14px; font-size:.875rem; color:var(--muted); line-height:1.45; }.period-control{display:flex;align-items:center;gap:.75rem;margin:0 0 1rem;color:var(--muted)}</style>
   </head>
   <body>
     <header>
@@ -568,6 +568,8 @@
           </select></label
         >
       </div>
+      <label class="period-control">Time frame
+<select id="frame"><option value="1">Daily</option><option value="2">Weekly</option><option value="3">Monthly</option><option value="8">Month to date</option><option value="4">Quarter</option><option value="5">Half year</option><option value="6">Year</option><option value="7">Year to date</option></select></label>
       <section class="summary" aria-label="Performance highlights">
         <div class="metric">
           <small>Strongest</small><strong id="high">—</strong>
@@ -576,14 +578,14 @@
           <small>Weakest</small><strong id="low">—</strong>
         </div>
         <div class="metric">
-          <small>Widest gap · percentage points</small><strong id="wide">—</strong>
+          <small>Widest gap</small><strong id="wide">—</strong>
         </div>
       </section>
       <section>
         <div class="panel-head">
           <div>
             <h2>Relative performance</h2>
-            <p class="sub">1 day · Relative to USD</p>
+            <p id="chart-period" class="sub">1 day · Relative to USD</p>
           </div>
           <div class="legend"><span>Gain</span><span>Loss</span></div>
         </div>
@@ -601,7 +603,7 @@
         <div class="panel-head">
           <div>
             <h2>Pair scanner</h2>
-            <p class="sub">28 currency pairs · 1-day performance vs USD</p>
+            <p id="scanner-period" class="sub">28 currency pairs · 1-day performance vs USD</p>
           </div>
           <div class="scanner-tools">
             <label
@@ -622,13 +624,13 @@
             />
           </div>
         </div>
-        <p class="bias-key">Gap = first currency return minus second currency return. A positive gap means BUY, a negative gap means SELL, and a gap rounded to zero means NEUTRAL.</p><p class="bias-key" id="history-status">Loading Finviz performance…</p><p class="bias-key">≈ marks a cross return estimated from two rounded Finviz USD quotes. Other live returns are published directly by Finviz.</p><div class="scroll">
+        <p class="bias-key">Gap = first currency return minus second currency return. A positive gap means BUY, a negative gap means SELL, and a gap rounded to zero means NEUTRAL.</p><p class="bias-key" id="history-status">Loading Finviz performance…</p><p class="bias-key">Weekly and monthly returns use Finviz currency performance relative to USD. ≈ indicates a calculated pair return. Supports and Opposes compare its direction with the selected bias.</p><div class="scroll">
           <table>
             <thead>
               <tr>
                 <th>Currency pair</th>
                 <th>Gap (pp)</th>
-                <th>Daily bias</th><th>1 week</th><th>1 month</th>
+                <th id="bias-heading">Daily bias</th><th>1 week</th><th>1 month</th>
               </tr>
             </thead>
             <tbody id="pairs"></tbody>

@@ -22,8 +22,10 @@ const server = http
         return;
       }
       if (url.pathname === "/feed" || url.pathname === "/fixture-feed") {
+        const v = url.searchParams.get("v") ?? "1";
+        if (!/^[1-8]$/.test(v)) { res.writeHead(400).end("Unknown timeframe"); return; }
         const reply =
-          url.pathname === "/feed" ? await feed() : fixtureResponse();
+          url.pathname === "/feed" ? await feed(fetch,v) : fixtureResponse(v);
         res
           .writeHead(reply.status, Object.fromEntries(reply.headers))
           .end(await reply.text());

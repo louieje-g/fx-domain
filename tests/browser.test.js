@@ -44,8 +44,14 @@ test("production dashboard: controls, snapshots, layout and offline reload", asy
     );
   await page.waitForFunction(()=>document.querySelector('#history-status').textContent.includes('Retrieved'));
   const eurJpy = rows.filter({hasText:'EUR/JPY'}).locator('td');
-  assert.equal(await eurJpy.nth(3).textContent(),'+7.00%Supports');
-  assert.equal(await eurJpy.nth(4).textContent(),'-6.14%Opposes');
+  assert.equal(await eurJpy.nth(3).textContent(),'+15.22%Supports');
+  assert.equal(await eurJpy.nth(4).textContent(),'-18.75%Opposes');
+  for(const v of ["2","3","8","4","5","6","7","1"]) {
+    await Promise.all([page.waitForResponse(r=>r.url().endsWith(v==="1"?"/fixture-feed":"/fixture-feed?v="+v)),page.selectOption("#frame",v)]);
+    await page.waitForSelector("#currency-EUR");
+    assert.equal(await rows.count(),28);
+    assert.equal(await page.locator("#currency-EUR .value").textContent(),v==="1"?"+0.50%":((Number(v)%2?"-":"+")+(3*Number(v)).toFixed(2)+"%"));
+  }
   for (const [q, n] of [
     ["jpy", 7],
     ["eur/usd", 1],

@@ -2,9 +2,9 @@ import { codes, normalize, pairsFor } from "./model.js";
 const byId = (id) => document.getElementById(id);
 const demo = new URLSearchParams(location.search).get("mode") === "fixture";
 const source = demo ? "Development fixture" : "Finviz";
-const storageKey = demo ? "fx-fixture-snapshot" : "snapshot";
+const keyPrefix = demo ? "fx-fixture-snapshot" : "snapshot";
 let snapshot,
-  busy = false,
+  activeRequest,
   timer;
 if (demo) {
   document.querySelector(".eyebrow").textContent =
@@ -12,14 +12,31 @@ if (demo) {
   document.querySelector("footer").textContent =
     "Development fixture · Gap in percentage points = base performance − quote performance.";
 }
+const frameControl = byId("frame");
 try {
-  const saved = JSON.parse(localStorage.getItem(storageKey));
+  const saved = localStorage.getItem("fx-frame");
+  if (/^[1-8]$/.test(saved)) frameControl.value = saved;
+} catch {}
+function snapshotKey() {
+  return frameControl.value === "1" ? keyPrefix : keyPrefix + "-v" + frameControl.value;
+}
+function loadFrame() {
+  snapshot = undefined;
+  const label = frameControl.selectedOptions[0].textContent;
+  byId("chart-period").textContent = label + " · Relative to USD";
+  byId("scanner-period").textContent = "28 currency pairs · " + label + " performance vs USD";
+  byId("bias-heading").textContent = label + " bias";
+  for(const id of ["bars","ticks","pairs"]) byId(id).replaceChildren();
+  for(const id of ["low","high","wide"]) byId(id).textContent="—";
+try {
+  const saved = JSON.parse(localStorage.getItem(snapshotKey()));
   if (typeof saved?.time === "string" && saved.time.trim())
     snapshot = { data: normalize(saved.data), time: saved.time };
 } catch {}
 byId("status").textContent = snapshot
   ? "Cached · " + source + " · " + snapshot.time
   : "Connecting to " + source + "…";
+}
 function signed(n) {
   return (n > 0 ? "+" : "") + n.toFixed(2);
 }
@@ -42,7 +59,7 @@ byId("sort").onchange = () => {
   render();
 };
 let periods;
-const historyKey = storageKey + '-finviz-periods-v1';
+const historyKey = keyPrefix + '-finviz-periods-v2';
 let nextHistoryCheck = 0;
 let loadingHistory = false;
 function validHistory(h) {
@@ -80,7 +97,7 @@ async function refreshHistory() {
 function periodCell(pair, period) {
   const value=periods?.returns[pair.name][period];
   if(value===undefined) return '<td aria-label="Historical return unavailable">—</td>';
-  const label = !pair.gap ? 'No daily bias' : !value ? 'Flat' :
+  const label = !pair.gap ? 'Neutral bias' : !value ? 'Flat' :
     Math.sign(value)===Math.sign(pair.gap) ? 'Supports' : 'Opposes';
   const basis = demo ? 'Fixture' : periods.returns[pair.name].direct ? 'Finviz pair return' : 'Calculated from Finviz USD pairs';
   const estimate = !demo && !periods.returns[pair.name].direct ? '≈' : '';
@@ -153,30 +170,33 @@ function render() {
       .join("") || '<tr><td colspan="5">No matching pairs.</td></tr>';
 }
 async function refresh() {
-  if (busy) return;
-  busy = true;
+  if (activeRequest) return;
+  const controller = new AbortController();
+  activeRequest = controller;
   void refreshHistory();
   try {
-    const r = await fetch(demo ? "/fixture-feed" : "/feed", {
+    const r = await fetch((demo ? "/fixture-feed" : "/feed") + (frameControl.value === "1" ? "" : "?v="+frameControl.value), {
       cache: "no-store",
-      signal: AbortSignal.timeout(8500),
+      signal: AbortSignal.any([controller.signal, AbortSignal.timeout(8500)]),
     });
     if (!r.ok) throw Error();
     const data = normalize(await r.json());
+    if (controller.signal.aborted) return;
     snapshot = { data, time: new Date().toLocaleString() };
     try {
-      localStorage.setItem(storageKey, JSON.stringify(snapshot));
+      localStorage.setItem(snapshotKey(), JSON.stringify(snapshot));
     } catch {}
     render();
     byId("status").textContent = source + " fetched · " + snapshot.time;
   } catch {
+    if (controller.signal.aborted) return;
     byId("status").textContent =
       "Feed unavailable" +
       (snapshot?.time
         ? " · Cached " + source + " · " + snapshot.time
         : " · Waiting for data");
   } finally {
-    busy = false;
+    if (activeRequest === controller) activeRequest = undefined;
   }
 }
 function schedule() {
@@ -187,6 +207,16 @@ function schedule() {
     timer = setInterval(refresh, seconds * 1000);
   }
 }
+frameControl.onchange = () => {
+  activeRequest?.abort();
+  activeRequest = undefined;
+  try { localStorage.setItem("fx-frame",frameControl.value); } catch {}
+  loadFrame();
+  render();
+  schedule();
+  if (byId("interval").value === "0") refresh();
+};
+loadFrame();
 byId("interval").onchange = schedule;
 byId("query").oninput = render;
 render();
