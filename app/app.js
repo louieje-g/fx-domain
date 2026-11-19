@@ -20,6 +20,11 @@ try {
 function snapshotKey() {
   return frameControl.value === "1" ? keyPrefix : keyPrefix + "-v" + frameControl.value;
 }
+function showFetchStatus(label, cached = false) {
+  byId("status").dataset.cached = String(cached);
+  byId("feed-label").textContent = label;
+  byId("fetch-time").textContent = snapshot?.time || "";
+}
 function loadFrame() {
   snapshot = undefined;
   const label = frameControl.selectedOptions[0].textContent;
@@ -33,9 +38,7 @@ try {
   if (typeof saved?.time === "string" && saved.time.trim())
     snapshot = { data: normalize(saved.data), time: saved.time };
 } catch {}
-byId("status").textContent = snapshot
-  ? "Cached · " + source + " · " + snapshot.time
-  : "Connecting to " + source + "…";
+showFetchStatus(snapshot ? "Cached · Last fetched from " + source : "Connecting to " + source + "…", Boolean(snapshot));
 }
 function signed(n) {
   return (n > 0 ? "+" : "") + n.toFixed(2);
@@ -187,14 +190,10 @@ async function refresh() {
       localStorage.setItem(snapshotKey(), JSON.stringify(snapshot));
     } catch {}
     render();
-    byId("status").textContent = source + " fetched · " + snapshot.time;
+    showFetchStatus("Last fetched from " + source);
   } catch {
     if (controller.signal.aborted) return;
-    byId("status").textContent =
-      "Feed unavailable" +
-      (snapshot?.time
-        ? " · Cached " + source + " · " + snapshot.time
-        : " · Waiting for data");
+    showFetchStatus(snapshot ? "Feed unavailable · Cached · Last fetched from " + source : "Feed unavailable · Waiting for data", Boolean(snapshot));
   } finally {
     if (activeRequest === controller) activeRequest = undefined;
   }
