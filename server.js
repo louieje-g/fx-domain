@@ -12,6 +12,12 @@ const types = {
   "model.js": "text/javascript",
   "sw.js": "text/javascript",
   "manifest.json": "application/manifest+json",
+  "favicon.ico": "image/x-icon",
+  "favicon-16.png": "image/png",
+  "favicon-32.png": "image/png",
+  "apple-touch-icon.png": "image/png",
+  "maskable-192.png": "image/png",
+  "maskable-512.png": "image/png",
   "icon192.png": "image/png",
   "icon512.png": "image/png",
 };

@@ -7,6 +7,12 @@ const shell = [
   "./trends.js",
   "./model.js",
   "./manifest.json",
+  "./favicon.ico",
+  "./favicon-16.png",
+  "./favicon-32.png",
+  "./apple-touch-icon.png",
+  "./maskable-192.png",
+  "./maskable-512.png",
   "./icon192.png?v=purple-mark",
   "./icon512.png?v=purple-mark",
 ].map(path => new URL(path,self.registration.scope).pathname);
