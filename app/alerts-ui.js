@@ -114,13 +114,14 @@ function decorate() {
     for (const {option,rule,reading} of rules) {
       const hit = reading?.lastHit;
       const fresh = reading?.seen && Date.now()-Date.parse(reading.seen)<45000 &&
-        Number.isFinite(reading.gap) && reading.threshold===rule.threshold;
-      const left = fresh ? Math.round((rule.threshold-reading.gap)*100) : null;
+        Number.isFinite(reading.gap) && reading.threshold===rule.threshold && (reading.direction ?? "up")===(rule.direction ?? "up");
+      const down = rule.direction==="down";
+      const left = fresh ? Math.round((rule.threshold-reading.gap)*100)*(down?-1:1) : null;
       let state = "Awaiting reading";
-      if (fresh) state = left>0 ? (left/100).toFixed(2)+" pp to go" : hit ? "Threshold hit" : left===0 ? "At threshold" : "Above threshold";
+      if (fresh) state = left>0 ? (left/100).toFixed(2)+" pp to go" : hit ? "Threshold hit" : left===0 ? "At threshold" : down ? "Below threshold" : "Above threshold";
       const line=document.createElement("div");
       const target=document.createElement("span");
-      target.textContent=option.text+" · Target "+rule.threshold.toFixed(2)+" pp";
+      target.textContent=option.text+(down?" · Down to ":" · Up to ")+rule.threshold.toFixed(2)+" pp";
       const status=document.createElement("strong");
       status.textContent=state;
       line.append(target,status);
@@ -153,8 +154,8 @@ function sync() {
   el("alert-close").disabled = busy;
   el("test-notification").disabled = busy || !supported || !config?.key;
   el("alert-save").disabled = busy || !supported || !config?.key;
-  period.disabled = el("alert-threshold").disabled = el("alert-remove").disabled = busy;
-  status.textContent = fixtureMode ? "Push alerts are available in live mode." : !supported ? "Push requires a supported browser or installed PWA." : configFailed ? "Alert service unavailable. Reopen the dashboard to retry." : !config?.key ? "Connecting to the alert service…" : rule ? "Active at "+rule.threshold.toFixed(2)+" pp." : "Notify me when the absolute gap reaches this threshold from below.";
+  period.disabled = el("alert-direction").disabled = el("alert-threshold").disabled = el("alert-remove").disabled = busy;
+  status.textContent = fixtureMode ? "Push alerts are available in live mode." : !supported ? "Push requires a supported browser or installed PWA." : configFailed ? "Alert service unavailable. Reopen the dashboard to retry." : !config?.key ? "Connecting to the alert service…" : rule ? "Active at "+rule.threshold.toFixed(2)+" pp." : (el("alert-direction").value==="down"?"Notify when the gap falls to or below the threshold.":"Notify when the gap rises to or above the threshold.");
 }
 let stopReading = () => {};
 function showDistance() {
@@ -164,8 +165,8 @@ function showDistance() {
   el("current-gap").textContent = gap == null ? "—" : gap.toFixed(2)+" pp";
   const distance = Math.round((gap-threshold.valueAsNumber)*100);
   el("gap-distance").textContent = gap == null ? "Waiting for a reading…" : !threshold.validity.valid ? "Enter a positive threshold." :
-    distance<0 ? (-distance/100).toFixed(2)+" pp below threshold." :
-    (distance===0 ? "At threshold." : (distance/100).toFixed(2)+" pp above threshold.")+" A new crossing requires a drop below the threshold first.";
+    (distance===0 ? "At threshold." : (Math.abs(distance)/100).toFixed(2)+" pp "+(distance>0?"above":"below")+" threshold.") +
+    (el("alert-direction").value==="down" ? (distance<=0?" A new downward crossing requires a rise above the threshold first.":"") : (distance>=0?" A new upward crossing requires a drop below the threshold first.":""));
 }
 function followPeriod() {
   stopReading();stopReading=()=>{};
@@ -213,7 +214,10 @@ thresholdInput.onkeydown = event => {
   formatThreshold();
   showDistance();
 };
+el("alert-direction").onchange = () => {thresholdInput.min=el("alert-direction").value==="down"?"0":"0.01";sync();showDistance();};
 function loadThreshold() {
+  el("alert-direction").value=readRule(pair,period.value)?.direction ?? "up";
+  thresholdInput.min=el("alert-direction").value==="down"?"0":"0.01";
   el("alert-threshold").value = (readRule(pair,period.value)?.threshold ?? 1).toFixed(2);
   sync();
   followPeriod();
@@ -266,7 +270,7 @@ el("test-notification").onclick=async()=>{
 };
 async function change(remove) {
   if (!pair || busy) return;
-  const name=pair, frame=period.value, threshold=el("alert-threshold").valueAsNumber;
+  const name=pair, frame=period.value, direction=el("alert-direction").value, threshold=el("alert-threshold").valueAsNumber;
   const key=ruleKey(name,frame);
   if (remove && !readRule(name,frame)) {
     localStorage.removeItem(watchKey(name));close();redraw();return;
@@ -278,12 +282,12 @@ async function change(remove) {
     let body;
     if (!remove) {
       const subscription=await deviceSubscription();
-      body=JSON.stringify({pair:name,frame,threshold,subscription});
+      body=JSON.stringify({pair:name,frame,threshold,direction,subscription});
     }
     const result=await fetch(endpoint,{method:remove?"DELETE":"PUT",headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},body});
     if (!result.ok) throw Error("Could not save the alert change.");
     if (remove) localStorage.removeItem(key);
-    else localStorage.setItem(key,JSON.stringify({token,threshold}));
+    else localStorage.setItem(key,JSON.stringify({token,threshold,direction}));
     localStorage.removeItem(watchKey(name));
     busy=false;close();redraw();alertsChanged();
   } catch(err) {busy=false;sync();if(pair===name) {status.dataset.error="true";status.textContent=err.message;}}

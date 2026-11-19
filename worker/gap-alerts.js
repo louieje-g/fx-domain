@@ -33,7 +33,7 @@ export class GapAlerts {
       if (!Array.isArray(ids)||ids.length>224||!ids.every(id=>typeof id==="string" && /^[a-f0-9]{64}$/.test(id))) return reply(400);
       return Response.json(ids.map(id=>{
         const rule=this.rules.get("rule:"+id);
-        return rule ? {gap:rule.gap,seen:rule.seen,lastHit:rule.lastHit,threshold:rule.threshold} : null;
+        return rule ? {gap:rule.gap,seen:rule.seen,lastHit:rule.lastHit,threshold:rule.threshold,direction:rule.direction ?? "up"} : null;
       }),{headers});
     }
     const auth=request.headers.get("Authorization") || "";
@@ -47,13 +47,13 @@ export class GapAlerts {
       const body=await request.text();
       if (body.length>8192) return reply(413);
       const parsed=JSON.parse(body);
-      const {pair,frame,threshold,subscription}=request.method==="POST" ? {pair:"EUR/USD",frame:"1",threshold:1,subscription:parsed.subscription} : parsed;
+      const {pair,frame,threshold,subscription,direction="up"}=request.method==="POST" ? {pair:"EUR/USD",frame:"1",threshold:1,subscription:parsed.subscription} : parsed;
       const url=new URL(subscription.endpoint);
-      if (!pairs.has(pair) || !/^[1-8]$/.test(frame) || !Number.isFinite(threshold) || threshold<=0 ||
+      if (!pairs.has(pair) || !/^[1-8]$/.test(frame) || !Number.isFinite(threshold) || !["up","down"].includes(direction) || threshold<0 || (threshold===0 && direction!=="down") ||
           url.protocol!=="https:" || url.username || url.password || url.port ||
           !/^(fcm\.googleapis\.com|(?:[a-z0-9-]+\.)*push\.apple\.com|(?:[a-z0-9-]+\.)*push\.services\.mozilla\.com|(?:[a-z0-9-]+\.)*notify\.windows\.com)$/.test(url.hostname) ||
           !/^[\w-]{87}$/.test(subscription.keys?.p256dh) || !/^[\w-]{22}$/.test(subscription.keys?.auth)) return reply(400);
-      rule={pair,frame,threshold,subscription,above:null};
+      rule={pair,frame,threshold,direction,subscription,above:null};
     } catch {return reply(400);}
     if (request.method==="POST") {
       try {
@@ -62,7 +62,7 @@ export class GapAlerts {
       } catch(error) {console.error("Push failed:",error.name,error.message.replace(/https?:\/\/\S+/g,"[URL]"));return reply(502);}
     }
     const previous=this.rules.get(id);
-    if (previous?.pair===rule.pair && previous.frame===rule.frame && previous.threshold===rule.threshold) Object.assign(rule,{above:previous.above,lastHit:previous.lastHit ?? null});
+    if (previous?.pair===rule.pair && previous.frame===rule.frame && previous.threshold===rule.threshold && (previous.direction ?? "up")===rule.direction) Object.assign(rule,{above:previous.above,lastHit:previous.lastHit ?? null});
     this.rules.set(id,rule);
     await this.storage.put(id,rule);
     const alarm=await this.storage.getAlarm();
@@ -78,7 +78,7 @@ export class GapAlerts {
     await Promise.all([...this.rules].map(async ([id,rule])=>{
       if (rule.frame!==frame) return;
       const gap=gaps.get(rule.pair);
-      const above=gap>=rule.threshold;
+      const above=rule.direction==="down" ? gap<=rule.threshold : gap>=rule.threshold;
       const changed=above!==rule.above;
       rule.gap=gap;rule.seen=new Date().toISOString();
       if (above && rule.above===false) {rule.lastHit=rule.seen;rule.pending=true;}
@@ -88,7 +88,7 @@ export class GapAlerts {
       if (this.rules.get(id)!==rule || !rule.pending) return;
       {
         try {
-          const response=await this.send(rule.subscription,{pair:rule.pair,frame,gap,threshold:rule.threshold},300);
+          const response=await this.send(rule.subscription,{pair:rule.pair,frame,gap,threshold:rule.threshold,direction:rule.direction ?? "up"},300);
           if (this.rules.get(id)!==rule) return;
           if ([404,410].includes(response.status)) return this.remove(id);
           if (!response.ok) return;

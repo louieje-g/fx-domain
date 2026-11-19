@@ -56,7 +56,7 @@ self.addEventListener("push", event => {
   const {pair,frame,threshold,gap} = payload;
   const period = ["","Daily","Weekly","Monthly","Quarter","Half year","Year","Year to date","Month to date"][frame];
   event.waitUntil(self.registration.showNotification(pair+" · "+period+" gap alert", {
-    body:"Absolute gap reached "+gap.toFixed(2)+" pp (threshold "+threshold.toFixed(2)+" pp).",
+    body:"Absolute gap "+(payload.direction==="down"?"fell":"rose")+" to "+gap.toFixed(2)+" pp (threshold "+threshold.toFixed(2)+" pp).",
     icon:"./icon192.png"
   }));
 });

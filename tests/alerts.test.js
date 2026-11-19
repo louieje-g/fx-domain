@@ -54,3 +54,13 @@ test("last hit persists after restart and is independent of push delivery",async
   assert.equal(restored.lastHit,hit);
   assert.equal(restored.gap,.9);
 });
+
+test("down alerts fire on equality and re-arm only above the threshold",async()=>{
+  let gap=.5;
+  const sent=[];
+  const engine=createAlerts(":memory:",async()=>({...fixture,EUR:gap}),async(_,payload)=>sent.push(JSON.parse(payload)));
+  engine.save("device",{pair:"EUR/USD",frame:"1",direction:"down",threshold:.5,subscription:{endpoint:"https://fcm.googleapis.com/test",keys:{auth:"a".repeat(22),p256dh:"a".repeat(87)}}});
+  for(gap of [.5,.48,.56,.50,.49,.52,.48]) await engine.poll();
+  assert.deepEqual(sent.map(msg=>[msg.direction,msg.gap]),[["down",.5],["down",.48]]);
+  assert.equal(engine.status("device").direction,"down");
+});

@@ -16,7 +16,7 @@ const types = {
   "icon512.png": "image/png",
 };
 const port = Number(process.env.PORT || 4173);
-const handleAlerts = localAlerts();
+let handleAlerts;
 const server = http
   .createServer(async (req, res) => {
     try {
@@ -60,12 +60,13 @@ const server = http
       res.end();
     }
   })
-  .listen(port, "127.0.0.1", () =>
+  .listen(port, "127.0.0.1", () => {
+    handleAlerts = localAlerts(port);
     console.log(
       "FX Domain http://127.0.0.1:" +
         server.address().port +
         "/" +
         (process.argv.includes("--fixture") ? "?mode=fixture" : ""),
-    ),
-  );
+    );
+  });
 
