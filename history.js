@@ -49,7 +49,7 @@ export async function historicalFeed() {
     const match = html.match(/<script\b[^>]*\bid=["']forex-perf-init-data["'][^>]*>([\s\S]*?)<\/script>/i);
     if (!match) throw Error('Missing Finviz performance table');
     cached = performanceSnapshot(JSON.parse(match[1]).rows);
-    expires = Date.now()+3600000;
+    expires = Date.now()+60000;
     return cached;
   })().finally(()=>{pending=null;});
   return pending;

@@ -71,7 +71,7 @@ async function refreshHistory() {
     periods=h;
     try { localStorage.setItem(historyKey,JSON.stringify(h)); } catch {}
     historyStatus(demo ? 'Fixture history' : 'Finviz weekly and monthly performance');
-    nextHistoryCheck=Date.now()+3600000;
+    nextHistoryCheck=Date.parse(h.fetchedAt)+60000;
   } catch {
     historyStatus(periods ? 'Cached history' : 'Historical returns unavailable');
     nextHistoryCheck=Date.now()+60000;
@@ -83,7 +83,8 @@ function periodCell(pair, period) {
   const label = !pair.gap ? 'No daily bias' : !value ? 'Flat' :
     Math.sign(value)===Math.sign(pair.gap) ? 'Supports' : 'Opposes';
   const basis = demo ? 'Fixture' : periods.returns[pair.name].direct ? 'Finviz pair return' : 'Calculated from Finviz USD pairs';
-  return '<td title='+JSON.stringify(basis)+'>'+signed(value)+'%<small class="legs">'+label+'</small></td>';
+  const estimate = !demo && !periods.returns[pair.name].direct ? '≈' : '';
+  return '<td title='+JSON.stringify(basis)+'>'+estimate+signed(value)+'%<small class="legs">'+label+'</small></td>';
 }
 function render() {
   if (!snapshot) return;
