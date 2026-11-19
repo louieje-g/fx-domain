@@ -49,5 +49,5 @@ The Firebase Hosting workflow publishes on pushes to main and requests fresh Fin
 
 Reset to defaults clears the saved dashboard preferences and restores an empty search, Daily, Widest gap, the system theme, and a 10-second refresh.
 
-The public site is https://fx-domain.web.app/. It opens /apps/index.html. GitHub Actions uses Workload Identity Federation for main-branch deployments. For a manual deployment from an authorized Firebase CLI session, run node scripts/hosting.js and then firebase deploy --only hosting --project fx-domain.
+The public site is https://fx-domain.web.app/. The dashboard opens at the site root. Previous /apps/index.html links redirect to the root. GitHub Actions uses Workload Identity Federation for main-branch deployments. For a manual deployment from an authorized Firebase CLI session, run node scripts/hosting.js and then firebase deploy --only hosting --project fx-domain.
 

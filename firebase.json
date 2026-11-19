@@ -1,11 +1,16 @@
 {
   "hosting": {
     "site": "fx-domain",
-    "public": "dist/hosting",
+    "public": "dist/firebase",
     "ignore": ["**/.*", "**/node_modules/**"],
+    "redirects": [
+      {"source": "/apps", "destination": "/", "type": 301},
+      {"source": "/apps/", "destination": "/", "type": 301},
+      {"source": "/apps/index.html", "destination": "/", "type": 301}
+    ],
     "headers": [
-      {"source": "/apps/data/**", "headers": [{"key": "Cache-Control", "value": "no-store"}]},
-      {"source": "/apps/sw.js", "headers": [{"key": "Cache-Control", "value": "no-cache"}]}
+      {"source": "/data/**", "headers": [{"key": "Cache-Control", "value": "no-store"}]},
+      {"source": "/sw.js", "headers": [{"key": "Cache-Control", "value": "no-cache"}]}
     ]
   }
 }
