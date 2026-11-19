@@ -34,9 +34,9 @@ test("production dashboard: controls, snapshots, layout and offline reload", asy
   ])
     assert.equal(await page.locator("#" + id).textContent(), str);
   for (const [name, result] of [
-    ["EUR/USD", "+0.50BUY"],
-    ["USD/CAD", "-0.10SELL"],
-    ["GBP/AUD", "0.00NEUTRAL"],
+    ["EUR/USD", "EUR +0.50% · USD 0.00%+0.50BUY"],
+    ["USD/CAD", "USD 0.00% · CAD +0.10%-0.10SELL"],
+    ["GBP/AUD", "GBP +0.20% · AUD +0.20%0.00NEUTRAL"],
   ])
     assert.equal(
       await rows.filter({ hasText: name }).textContent(),
@@ -60,7 +60,7 @@ test("production dashboard: controls, snapshots, layout and offline reload", asy
     ["za", "USD/JPY"],
   ]) {
     await page.selectOption("#sort", sort);
-    assert.equal(await rows.first().locator("td").first().innerText(), first);
+    assert.equal(await rows.first().locator("td b").innerText(), first);
   }
   await page.click("#theme");
   const theme = await page.locator("html").getAttribute("data-theme");

@@ -537,7 +537,7 @@
           min-width: 145px;
         }
       }
-    </style>
+    .legs { display:block; color:var(--muted); font-size:.8125rem; font-weight:400; margin-top:4px; white-space:normal; } .bias-key { margin:0; padding:0 20px 14px; font-size:.875rem; color:var(--muted); line-height:1.45; }</style>
   </head>
   <body>
     <header>
@@ -576,7 +576,7 @@
           <small>Weakest</small><strong id="low">—</strong>
         </div>
         <div class="metric">
-          <small>Widest gap</small><strong id="wide">—</strong>
+          <small>Widest gap · percentage points</small><strong id="wide">—</strong>
         </div>
       </section>
       <section>
@@ -601,7 +601,7 @@
         <div class="panel-head">
           <div>
             <h2>Pair scanner</h2>
-            <p class="sub">28 currency pairs · Gap in percentage points</p>
+            <p class="sub">28 currency pairs · 1-day performance vs USD</p>
           </div>
           <div class="scanner-tools">
             <label
@@ -622,7 +622,7 @@
             />
           </div>
         </div>
-        <div class="scroll">
+        <p class="bias-key">Gap = first currency return minus second currency return. A positive gap means BUY, a negative gap means SELL, and a gap rounded to zero means NEUTRAL.</p><div class="scroll">
           <table>
             <thead>
               <tr>

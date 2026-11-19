@@ -97,7 +97,7 @@ function render() {
           (p.gap > 0 ? "long" : p.gap < 0 ? "short" : "even") +
           '"><td><b>' +
           p.name +
-          "</b></td><td>" +
+          "</b><small class=legs>" + p.name.split("/").map(code => code + " " + signed(values[code]) + "%").join(" · ") + "</small></td><td>" +
           signed(p.gap) +
           '</td><td><mark class="' +
           (p.gap < 0 ? "sell" : p.gap === 0 ? "flat" : "") +
