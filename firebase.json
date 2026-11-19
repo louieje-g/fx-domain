@@ -1,0 +1,11 @@
+{
+  "hosting": {
+    "site": "fx-domain",
+    "public": "dist/hosting",
+    "ignore": ["**/.*", "**/node_modules/**"],
+    "headers": [
+      {"source": "/apps/data/**", "headers": [{"key": "Cache-Control", "value": "no-store"}]},
+      {"source": "/apps/sw.js", "headers": [{"key": "Cache-Control", "value": "no-cache"}]}
+    ]
+  }
+}

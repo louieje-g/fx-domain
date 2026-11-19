@@ -43,8 +43,11 @@ The scanner produces 28 fixed-orientation pairs, rounds base minus quote to two 
 The chart, highlights, scanner inputs and bias follow the selected Finviz period. GET /feed?v=N proxies https://finviz.com/api/forex_perf?v=N. Finviz uses 1 for daily, 2 weekly, 3 monthly, 4 quarterly, 5 half-year, 6 yearly, 7 year to date and 8 month to date. Switching periods fetches once even when periodic refresh is paused. The selection and each period's last success are stored locally.
 
 
-## GitHub Pages
+## Firebase Hosting
 
-The Pages workflow publishes on pushes to main and requests fresh Finviz snapshots every five minutes through GitHub Actions. Scheduled runs and CDN updates may be delayed. The fetch timestamp records the upstream read. Local Node mode continues checking Finviz directly on the selected interval. A failed snapshot build leaves the previous deployment available.
+The Firebase Hosting workflow publishes on pushes to main and requests fresh Finviz snapshots every five minutes through GitHub Actions. Scheduled runs and CDN updates may be delayed. The fetch timestamp records the upstream read. Local Node mode continues checking Finviz directly on the selected interval. A failed snapshot build leaves the previous deployment available.
 
 Reset to defaults clears the saved dashboard preferences and restores an empty search, Daily, Widest gap, the system theme, and a 10-second refresh.
+
+The public site is https://fx-domain.web.app/. It opens /apps/index.html. GitHub Actions uses Workload Identity Federation for main-branch deployments. For a manual deployment from an authorized Firebase CLI session, run node scripts/hosting.js and then firebase deploy --only hosting --project fx-domain.
+
