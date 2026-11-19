@@ -1,6 +1,7 @@
 import { codes, normalize, pairsFor } from "./model.js";
 const byId = (id) => document.getElementById(id);
 const demo = new URLSearchParams(location.search).get("mode") === "fixture";
+const hostedSnapshots = document.documentElement.hasAttribute("data-snapshots");
 const source = demo ? "Development fixture" : "Finviz";
 const keyPrefix = demo ? "fx-fixture-snapshot" : "snapshot";
 let snapshot,
@@ -143,14 +144,18 @@ async function refresh() {
   activeRequest = controller;
 
   try {
-    const r = await fetch((demo ? "/fixture-feed" : "/feed") + (frameControl.value === "1" ? "" : "?v="+frameControl.value), {
+    const endpoint = hostedSnapshots
+      ? "./data/" + (demo ? "fixture-" : "") + frameControl.value + ".json"
+      : (demo ? "./fixture-feed" : "./feed") + (frameControl.value === "1" ? "" : "?v="+frameControl.value);
+    const r = await fetch(endpoint, {
       cache: "no-store",
       signal: AbortSignal.any([controller.signal, AbortSignal.timeout(8500)]),
     });
     if (!r.ok) throw Error();
-    const data = normalize(await r.json());
+    const payload = await r.json();
+    const data = normalize(hostedSnapshots ? payload.data : payload);
     if (controller.signal.aborted) return;
-    snapshot = { data, time: new Date().toISOString() };
+    snapshot = { data, time: hostedSnapshots ? new Date(payload.time).toISOString() : new Date().toISOString() };
     try {
       localStorage.setItem(snapshotKey(), JSON.stringify(snapshot));
     } catch {}
@@ -203,7 +208,7 @@ if (interval.value === "0" && !snapshot) showFetchStatus("Paused · Waiting for 
 render();
 schedule();
 if ("serviceWorker" in navigator)
-  navigator.serviceWorker.register("/sw.js").catch(() => {});
+  navigator.serviceWorker.register("./sw.js").catch(() => {});
 
 const switcher = byId("theme");
 function syncThemeButton() {
@@ -227,3 +232,20 @@ syncThemeButton();
 
 
 
+
+byId("reset").onclick = () => {
+  activeRequest?.abort();
+  activeRequest = undefined;
+  for (const key of ["fx-pair-query","fx-frame","fx-pair-sort","fx-domain-theme","fx-refresh-interval"]) {
+    try { localStorage.removeItem(key); } catch {}
+  }
+  query.value = "";
+  frameControl.value = "1";
+  byId("sort").value = "wide";
+  interval.value = "10";
+  document.documentElement.dataset.theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  syncThemeButton();
+  loadFrame();
+  render();
+  schedule();
+};

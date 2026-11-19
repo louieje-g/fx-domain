@@ -1,12 +1,12 @@
-const cacheName = "fx-domain-shell-v14";
+const cacheName = "fx-domain-shell-v15-" + self.registration.scope;
 const shell = [
-  "/",
-  "/app.js",
-  "/model.js",
-  "/manifest.json",
-  "/icon192.png",
-  "/icon512.png",
-];
+  "./",
+  "./app.js",
+  "./model.js",
+  "./manifest.json",
+  "./icon192.png",
+  "./icon512.png",
+].map(path => new URL(path,self.registration.scope).pathname);
 self.addEventListener("install", (event) =>
   event.waitUntil(
     caches
@@ -19,7 +19,7 @@ self.addEventListener("activate", (event) =>
   event.waitUntil(
     (async () => {
       for (const name of await caches.keys()) {
-        if (name.startsWith("fx-domain-shell-") && name !== cacheName)
+        if ((name.endsWith(self.registration.scope) || (self.registration.scope === self.location.origin + "/" && /^fx-domain-shell-v\d+$/.test(name))) && name !== cacheName)
           await caches.delete(name);
       }
       await self.clients.claim();
@@ -40,5 +40,6 @@ self.addEventListener("fetch", (event) => {
     ),
   );
 });
+
 
 

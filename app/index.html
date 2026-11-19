@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#111c32" />
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="manifest" href="./manifest.json" />
     <title>FX Domain | Market overview</title>
     <script>
       let preference;
@@ -555,7 +555,7 @@
   .scanner-tools input,.scanner-tools select { width:100%; min-width:0; min-height:44px; margin:0; }
   .scroll th,.scroll td { padding:10px 8px; }
 }
-</style>
+#reset {background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:7px;padding:9px 14px;font:inherit;cursor:pointer} @media(max-width:650px){#reset{grid-column:1/-1;min-height:44px}}</style>
   </head>
   <body>
     <header>
@@ -589,7 +589,7 @@
           </select></label
         ><label class="period-control">Time frame
 <select id="frame"><option value="1">Daily</option><option value="2">Weekly</option><option value="3">Monthly</option><option value="8">Month to date</option><option value="4">Quarter</option><option value="5">Half year</option><option value="6">Year</option><option value="7">Year to date</option></select></label>
-      <div id="status" role="status"><span id="feed-label">Connecting to Finviz…</span> <strong id="fetch-time"></strong></div></div>
+      <button id="reset" type="button">Reset to defaults</button><div id="status" role="status"><span id="feed-label">Connecting to Finviz…</span> <strong id="fetch-time"></strong></div></div>
       <section class="summary" aria-label="Performance highlights">
         <div class="metric">
           <small>Strongest</small><strong id="high">—</strong>
@@ -659,7 +659,7 @@
         performance.
       </footer>
     </main>
-    <script type="module" src="/app.js"></script>
+    <script type="module" src="./app.js"></script>
   </body>
 </html>
 

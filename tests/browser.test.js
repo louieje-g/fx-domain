@@ -109,6 +109,12 @@ test("production dashboard: controls, snapshots, layout and offline reload", asy
   assert.equal(await page.inputValue("#query"), "JPY");
   assert.equal(await page.inputValue("#sort"), "za");
   assert.equal(await page.locator("html").getAttribute("data-theme"), theme);
+  await context.setOffline(false);
+  await page.click("#reset");
+  for(const [id,value] of [["query",""],["frame","1"],["sort","wide"],["interval","10"]]) assert.equal(await page.inputValue("#"+id),value);
+  assert.ok(await page.evaluate(()=>document.documentElement.dataset.theme===(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light")));
+  await page.reload();
+  assert.equal(await page.inputValue("#interval"),"10");
   const live = await browser.newContext({ serviceWorkers: "block" });
   const view = await live.newPage();
   await view.clock.install();
