@@ -45,7 +45,7 @@ The chart, highlights, scanner inputs and bias follow the selected Finviz period
 
 ## Firebase Hosting
 
-The Firebase Hosting workflow publishes on pushes to main and requests fresh Finviz snapshots every five minutes through GitHub Actions. Scheduled runs and CDN updates may be delayed. The fetch timestamp records the upstream read. Local Node mode continues checking Finviz directly on the selected interval. A failed snapshot build leaves the previous deployment available.
+The Firebase Hosting workflow publishes on pushes to main. The hosted dashboard subscribes to the shared Cloudflare Worker by time frame and interval. The Durable Object fetches each due time frame once per tick and shares the Finviz reading with its subscribers. Deploy Worker changes with `npx wrangler deploy --config worker/wrangler.json`.
 
 Reset to defaults clears the saved dashboard preferences and restores an empty search, Daily, Widest gap, the system theme, and a 10-second refresh.
 

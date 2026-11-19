@@ -1,0 +1,9 @@
+{
+  "name": "fx-domain-feed",
+  "main": "index.js",
+  "compatibility_date": "2026-01-01",
+  "account_id": "97d7ad49eb8888939dc9bfbf6f95b082",
+  "workers_dev": true,
+  "durable_objects": {"bindings": [{"name": "FEED", "class_name": "SharedFeed"}]},
+  "migrations": [{"tag": "v1", "new_sqlite_classes": ["SharedFeed"]}]
+}

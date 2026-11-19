@@ -2,6 +2,7 @@ import { codes, normalize, pairsFor } from "./model.js";
 const byId = (id) => document.getElementById(id);
 const demo = new URLSearchParams(location.search).get("mode") === "fixture";
 const hostedSnapshots = document.documentElement.hasAttribute("data-snapshots");
+const liveFeed = !demo && document.documentElement.dataset.liveFeed;
 const source = demo ? "Development fixture" : "Finviz";
 const keyPrefix = demo ? "fx-fixture-snapshot" : "snapshot";
 let snapshot,
@@ -156,22 +157,70 @@ async function refresh() {
     const data = normalize(hostedSnapshots ? payload.data : payload);
     if (controller.signal.aborted) return;
     snapshot = { data, time: hostedSnapshots ? new Date(payload.time).toISOString() : new Date().toISOString() };
+    displaySnapshot();
+  } catch {
+    if (controller.signal.aborted) return;
+    showFeedError();
+  } finally {
+    if (activeRequest === controller) activeRequest = undefined;
+  }
+}
+function displaySnapshot() {
     try {
       localStorage.setItem(snapshotKey(), JSON.stringify(snapshot));
     } catch {}
     render();
     showFetchStatus("Last fetched from " + source);
-  } catch {
-    if (controller.signal.aborted) return;
+}
+function showFeedError() {
     if (!snapshot) { byId("bars").replaceChildren(); byId("chart-period").textContent = frameControl.selectedOptions[0].textContent + " · Relative to USD"; }
     showFetchStatus(snapshot ? "Feed unavailable · Cached · Last fetched from " + source : "Feed unavailable · Waiting for data", Boolean(snapshot));
-  } finally {
-    if (activeRequest === controller) activeRequest = undefined;
-  }
 }
-function schedule() {
+
+let stream;
+function closeStream() {
+  const previous = stream;
+  stream = undefined;
+  previous?.close();
+}
+function subscribe(seconds) {
+  const url = new URL(liveFeed);
+  const frame = frameControl.value;
+  url.search = new URLSearchParams({v: frame, seconds: seconds || 5});
+  const socket = new WebSocket(url);
+  stream = socket;
+  const watchdog = () => setTimeout(() => socket.close(), (seconds || 5) * 1000 + 15000);
+  let timeout = watchdog();
+  socket.onmessage = ({data}) => {
+    if (stream !== socket) return;
+    clearTimeout(timeout);
+    timeout = watchdog();
+    try {
+      const message = JSON.parse(data);
+      if (message.v !== frame || message.error) throw Error();
+      snapshot = {data: normalize(message.data), time: new Date(message.time).toISOString()};
+      displaySnapshot();
+    } catch {
+      showFeedError();
+    }
+    if (!seconds) closeStream();
+  };
+  socket.onclose = () => {
+    clearTimeout(timeout);
+    if (stream !== socket) return;
+    stream = undefined;
+    showFeedError();
+    if (seconds) timer = setTimeout(() => subscribe(seconds), 5000);
+  };
+}
+function schedule(fetchOnce = false) {
   clearInterval(timer);
   const seconds = Number(byId("interval").value);
+  if (liveFeed) {
+    closeStream();
+    if (seconds || fetchOnce) subscribe(seconds);
+    return;
+  }
   if (seconds) {
     refresh();
     timer = setInterval(refresh, seconds * 1000);
@@ -183,8 +232,8 @@ frameControl.onchange = () => {
   try { localStorage.setItem("fx-frame",frameControl.value); } catch {}
   loadFrame();
   render();
-  schedule();
-  if (byId("interval").value === "0") refresh();
+  schedule(true);
+  if (!liveFeed && byId("interval").value === "0") refresh();
 };
 loadFrame();
 const interval = byId("interval");

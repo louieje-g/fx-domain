@@ -1,4 +1,4 @@
-const cacheName = "fx-domain-shell-v16-" + self.registration.scope;
+const cacheName = "fx-domain-shell-v17-" + self.registration.scope;
 const shell = [
   "./",
   "./index.html",
