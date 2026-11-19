@@ -1,4 +1,4 @@
-const cacheName = "fx-domain-shell-v12";
+const cacheName = "fx-domain-shell-v13";
 const shell = [
   "/",
   "/app.js",
