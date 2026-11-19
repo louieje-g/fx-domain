@@ -247,11 +247,11 @@
         transition:
           transform 850ms cubic-bezier(0.22, 0.8, 0.25, 1),
           --change 800ms ease;
-        --accent: #197a67;
+        --accent: #057455;
         --fill: #53b59d;
       }
       .column.negative {
-        --accent: #9d514b;
+        --accent: #b53930;
         --fill: #d7988c;
       }
       .column.neutral {
@@ -266,7 +266,8 @@
         right: 2px;
         padding: 4px 0;
         border-radius: 4px;
-        background: var(--accent);
+        background: color-mix(in srgb, var(--accent) var(--strength, 0%), #546179);
+        transition: background-color 800ms ease;
         color: white;
         font: 650 13px monospace;
         z-index: 1;
@@ -277,7 +278,8 @@
         right: 2px;
         top: calc(50% - max(12px, var(--change)));
         bottom: calc(50% + min(-12px, var(--change)));
-        background: color-mix(in srgb, var(--fill) 48%, transparent);
+        background: color-mix(in srgb, var(--fill) var(--bar-fill, 20%), transparent);
+        transition: background-color 800ms ease;
         border-radius: 4px;
       }
       .value {
@@ -292,7 +294,7 @@
         top: calc(50% - var(--change) + 15px);
       }
       @media (prefers-reduced-motion: reduce) {
-        .column {
+        .column b, .stick, .column {
           transition: none;
         }
       }
@@ -511,6 +513,10 @@
           left: 1px;
           right: 1px;
         }
+        .stick {
+          top: calc(50% - max(0%, var(--change)));
+          bottom: calc(50% + min(0%, var(--change)));
+        }
         .value {
           letter-spacing: -0.05em;
         }
@@ -554,8 +560,93 @@
   .scanner-tools label { display:grid; grid-template-columns:auto 1fr; align-items:center; gap:8px; }
   .scanner-tools input,.scanner-tools select { width:100%; min-width:0; min-height:44px; margin:0; }
   .scroll th,.scroll td { padding:10px 8px; }
+  .scroll th span { display:block; white-space:nowrap; }
 }
-#reset {background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:7px;padding:9px 14px;font:inherit;cursor:pointer} @media(max-width:650px){#reset{grid-column:1/-1;min-height:44px}}</style>
+#reset {background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:7px;padding:9px 14px;font:inherit;cursor:pointer} @media(max-width:650px){#reset{grid-column:1/-1;min-height:44px}}
+.graph { position:relative; }
+#frame-loading {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  display:flex; align-items:center; gap:9px; width:max-content; max-width:95%;
+  padding:9px 14px; border:1px solid var(--line); border-radius:20px;
+  background:var(--panel); color:var(--ink); box-shadow:0 3px 14px #0002;
+  font-size:13px; font-weight:600; z-index:2; pointer-events:none;
+}
+#frame-loading[hidden] { display:none; }
+#frame-loading::before {
+  content:""; width:12px; height:12px; border-radius:50%;
+  border:2px solid var(--line); border-top-color:currentColor;
+  animation:frame-spin .85s linear infinite;
+}
+@keyframes frame-spin { to { transform:rotate(1turn); } }
+#bars { transition:opacity .18s ease; }
+#bars[aria-busy=true] { opacity:.23; }
+@media(prefers-reduced-motion:reduce) {
+  #frame-loading::before { animation:none; }
+  #bars { transition:none; }
+}
+.alert-tools {display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 12px;margin:0 20px 8px}
+#clear-alerts {font:inherit;font-size:.83rem;border:0;background:transparent;color:var(--ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:8px 0}
+#clear-alerts:disabled {color:var(--muted);opacity:.65;cursor:default}
+#clear-result:not(:empty) {display:block;margin:0 20px 10px;font-size:.83rem}
+.watch-filter {display:inline-flex;align-items:center;gap:6px;margin:0;font-size:.83rem;color:var(--muted)}
+.watch-filter input {width:auto;min-height:0;margin:0}
+.alert-action {font:inherit;font-size:.78rem;font-weight:600;cursor:pointer;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);padding:6px 8px;min-height:32px}
+.alert-action[data-watched=true] {color:var(--ink);border-color:#628e82}
+.scroll tr:has(+ .alert-detail) td {padding-bottom:3px}
+.scroll .alert-detail td {border-top:0;text-align:left;padding:0 12px 10px 24px}
+.scroll .alert-detail td div {position:relative;padding-left:14px}
+.alert-detail td div::before {content:"";position:absolute;left:1px;top:1px;width:7px;height:.65em;border:solid var(--muted);border-width:0 0 1px 1px;border-bottom-left-radius:2px}
+.scroll tr:has(+ .alert-detail):hover,.scroll .alert-detail:hover {filter:none}
+@media(max-width:650px){.scroll .alert-detail td {padding-left:7px}}
+.alert-detail td div {display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 12px;font-size:.72rem;line-height:1.5;font-weight:400;color:var(--muted)}
+.alert-detail strong {color:var(--ink);font-weight:600}
+.fx-dialog {--surface:#fff;--action:#116e60;width:min(27rem,calc(100% - 28px));max-height:90dvh;box-sizing:border-box;padding:0;border:1px solid var(--line);border-radius:18px;background:var(--surface);color:var(--ink);box-shadow:0 24px 80px #07102155}
+[data-theme=dark] .fx-dialog {--surface:#192639;--action:#76dbbf}
+.fx-dialog::backdrop {background:#081324a8}
+#alert-form {padding:22px;display:grid;gap:18px;text-align:left}
+.alert-head,.alert-actions {display:flex;align-items:center;justify-content:space-between;gap:10px}
+#alert-title {margin:0;font-size:1.35rem;letter-spacing:-.03em}
+#alert-form button {border:0;border-radius:8px;min-height:44px;padding:8px 14px;cursor:pointer;font:inherit;font-weight:650}
+#alert-close {background:transparent;color:var(--muted);font-size:1.5rem!important;line-height:1;width:44px}
+.alert-fields {display:grid;grid-template-columns:1.2fr 1fr;gap:12px}
+.alert-fields label {display:grid;gap:7px;color:var(--ink);font-size:.86rem;font-weight:600;min-width:0}
+#alert-form :is(input,select) {min-width:0;width:100%;margin:0;min-height:44px;box-sizing:border-box;font-size:1rem}
+.alert-actions {border-top:1px solid var(--line);padding-top:16px}
+#alert-save {margin-left:auto;background:var(--action);color:white}
+[data-theme=dark] #alert-save {color:#102a26}
+#alert-remove {background:transparent;color:#a33131}
+[data-theme=dark] #alert-remove {color:#ffaaa2}
+#alert-form button:disabled {opacity:.6;cursor:default}
+#alert-status {margin:0;font-size:.86rem;line-height:1.45;color:var(--muted)}
+#alert-status[data-error=true] {color:#aa3030}
+[data-theme=dark] #alert-status[data-error=true] {color:#ffaaa2}
+#alert-form :focus-visible {outline:2px solid var(--action);outline-offset:2px}
+@media(max-width:380px){.alert-fields {grid-template-columns:1fr}}
+@media(max-width:650px){.scroll td,.scroll th {padding-inline:5px}.alert-action {font-size:.72rem}}
+@media(max-width:650px){.legs {font-size:.65rem;line-height:1.2;letter-spacing:-.02em}}
+.scroll td:last-child {white-space:normal}
+.gap-context {display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px 12px;border-left:3px solid var(--action);padding:8px 12px}
+.gap-context small {grid-column:1/-1;color:var(--muted)}
+#test-notification {justify-self:start;background:transparent;color:var(--action);box-shadow:inset 0 0 0 1px var(--line)}
+@media(max-width:360px){
+  .scroll table {width:100%;table-layout:fixed}
+  .scroll th:first-child {width:29%}
+  .scroll th:nth-child(2) {width:20%}
+  .scroll th:nth-child(3) {width:22%}
+  .scroll th:last-child {width:29%}
+  .scroll th,.scroll td {padding-inline:3px}
+  .scroll th {font-size:.61rem;letter-spacing:0}
+  .alert-action {font-size:.66rem}
+  .scroll mark {padding-inline:4px}
+}
+.clear-form {padding:22px}
+.clear-form h2 {margin:0;font-size:1.35rem;letter-spacing:-.03em}
+.clear-form p {color:var(--muted);margin:10px 0 22px;line-height:1.45}
+.clear-actions {display:flex;justify-content:flex-end;gap:10px}
+.clear-actions button {font:inherit;font-weight:600;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:8px;min-height:44px;padding:8px 14px;cursor:pointer}
+.clear-actions .confirm-clear {color:white;background:#ad3537;border-color:transparent}
+.clear-actions button:focus-visible {outline:2px solid var(--action);outline-offset:2px}
+</style>
   </head>
   <body>
     <header>
@@ -613,13 +704,14 @@
           <div class="graph">
             <div class="ticks" id="ticks" aria-hidden="true"></div>
             <div id="bars"></div>
+            <div id="frame-loading" role="status" hidden></div>
           </div>
         </div>
       </section>
       <section>
         <div class="panel-head">
           <div>
-            <h2>Pair scanner</h2>
+            <h2 id="alerts-panel">Currency pair monitor</h2>
             <p id="scanner-period" class="sub">28 currency pairs · 1-day performance vs USD</p>
           </div>
           <div class="scanner-tools">
@@ -628,8 +720,8 @@
               <select id="sort">
                 <option value="wide">Widest gap</option>
                 <option value="narrow">Narrowest gap</option>
-                <option value="high">Highest signed gap</option>
-                <option value="low">Lowest signed gap</option>
+                <option value="high">Strongest buy bias</option>
+                <option value="low">Strongest sell bias</option>
                 <option value="az">Pair A–Z</option>
                 <option value="za">Pair Z–A</option>
               </select></label
@@ -641,25 +733,59 @@
             />
           </div>
         </div>
+        <div class="alert-tools"><label class="watch-filter"><input type="checkbox" id="only-watched"> Watched pairs only</label>
+          <button type="button" id="clear-alerts" disabled>Clear all alerts</button>
+        </div>
+        <span id="clear-result" role="status"></span>
         <div class="scroll">
           <table>
             <thead>
               <tr>
-                <th>Currency pair</th>
-                <th>Gap (pp)</th>
-                <th id="bias-heading">Daily bias</th>
+                <th>Currency <span>pair</span></th>
+                <th>Absolute <span>gap</span></th>
+                <th><span id="bias-heading">Daily</span> bias</th>
+                <th scope="col">Alert</th>
               </tr>
             </thead>
             <tbody id="pairs"></tbody>
           </table>
         </div>
       </section>
+      <dialog class="fx-dialog" id="clear-dialog" aria-labelledby="clear-title" aria-describedby="clear-description">
+        <form method="dialog" class="clear-form">
+          <h2 id="clear-title">Clear gap alerts?</h2>
+          <p id="clear-description"></p>
+          <div class="clear-actions">
+            <button value="cancel" autofocus>Cancel</button>
+            <button value="clear" class="confirm-clear">Clear alerts</button>
+          </div>
+        </form>
+      </dialog>
+      <dialog class="fx-dialog" id="alert-dialog" aria-labelledby="alert-title">
+        <form id="alert-form">
+          <div class="alert-head">
+            <h2 id="alert-title">Gap alert</h2>
+            <button type="button" id="alert-close" aria-label="Close gap alert">×</button>
+          </div>
+          <div class="alert-fields">
+            <label>Time frame<select id="alert-frame" autofocus></select></label>
+            <label>Threshold (pp)<input id="alert-threshold" inputmode="decimal" type="number" min="0.01" step="0.01" value="1.00" required></label>
+          </div>
+          <div class="gap-context"><span>Current absolute gap</span><strong id="current-gap">—</strong><small id="gap-distance"></small></div>
+          <button type="button" id="test-notification">Send test notification</button>
+          <p id="alert-status" role="status"></p>
+          <div class="alert-actions">
+            <button type="button" id="alert-remove" hidden>Remove alert</button>
+            <button id="alert-save">Enable alert</button>
+          </div>
+        </form>
+      </dialog>
       <footer>
-        Source: Finviz · Gap in percentage points = base performance − quote
-        performance.
+        Source: Finviz · Absolute gap is the distance between currency returns in percentage points.
       </footer>
     </main>
     <script type="module" src="./app.js"></script>
+    <script type="module" src="./alerts-ui.js"></script>
   </body>
 </html>
 

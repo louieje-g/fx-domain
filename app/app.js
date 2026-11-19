@@ -1,3 +1,4 @@
+import {recordGaps} from "./trends.js";
 import { codes, normalize, pairsFor } from "./model.js";
 const byId = (id) => document.getElementById(id);
 const demo = new URLSearchParams(location.search).get("mode") === "fixture";
@@ -12,7 +13,7 @@ if (demo) {
   document.querySelector(".eyebrow").textContent =
     "Currency monitor · Fixture mode";
   document.querySelector("footer").textContent =
-    "Development fixture · Gap in percentage points = base performance − quote performance.";
+    "Development fixture · Absolute gap in percentage points.";
 }
 const frameControl = byId("frame");
 try {
@@ -32,12 +33,18 @@ function showFetchStatus(label, cached = false) {
     String(date.getDate()).padStart(2,"0") + " " + date.getFullYear() + " · " +
     date.toLocaleTimeString("en-US");
 }
+function setFrameLoading(loading) {
+  const indicator = byId("frame-loading");
+  indicator.hidden = !loading;
+  indicator.textContent = loading ? "Loading " + frameControl.selectedOptions[0].textContent + "…" : "";
+  byId("bars").setAttribute("aria-busy", String(loading));
+}
 function loadFrame() {
   snapshot = undefined;
   const label = frameControl.selectedOptions[0].textContent;
   if (!byId("bars").childElementCount) byId("chart-period").textContent = label + " · Relative to USD";
   byId("scanner-period").textContent = "28 currency pairs · " + label + " performance vs USD";
-  byId("bias-heading").textContent = label + " bias";
+  byId("bias-heading").textContent = label;
   byId("pairs").replaceChildren();
   for(const id of ["low","high","wide"]) byId(id).textContent="—";
 try {
@@ -51,10 +58,10 @@ function signed(n) {
   return (n > 0 ? "+" : "") + n.toFixed(2);
 }
 const pairOrders = {
-  wide: (a, b) => Math.abs(b.gap) - Math.abs(a.gap),
-  narrow: (a, b) => Math.abs(a.gap) - Math.abs(b.gap),
-  high: (a, b) => b.gap - a.gap,
-  low: (a, b) => a.gap - b.gap,
+  wide: (a, b) => b.gap - a.gap,
+  narrow: (a, b) => a.gap - b.gap,
+  high: (a, b) => b.direction * b.gap - a.direction * a.gap,
+  low: (a, b) => a.direction * a.gap - b.direction * b.gap,
   az: (a, b) => a.name.localeCompare(b.name),
   za: (a, b) => b.name.localeCompare(a.name),
 };
@@ -79,6 +86,7 @@ function drawAxis(limit) {
 }
 drawAxis(1);
 
+window.addEventListener("pair-preferences", () => render());
 function render() {
   if (!snapshot) return;
   const values = snapshot.data;
@@ -101,6 +109,9 @@ function render() {
     column.className =
       "column " + (value < 0 ? "negative" : value > 0 ? "positive" : "neutral");
     column.style.transform = "translateX(" + rank * 100 + "%)";
+    const magnitude = Math.abs(value) / limit;
+    column.style.setProperty("--strength", 100 * Math.pow(magnitude, 0.8) + "%");
+    column.style.setProperty("--bar-fill", (20 + 52 * magnitude) + "%");
     column.style.setProperty("--change", 37 * (value / limit) + "%");
     column.querySelector(".value").textContent = signed(value) + "%";
   });
@@ -112,32 +123,35 @@ function render() {
   }
   const pairs = pairsFor(values);
   const widest = pairs.reduce((best, pair) =>
-    Math.abs(pair.gap) > Math.abs(best.gap) ? pair : best,
+    pair.gap > best.gap ? pair : best,
   );
   byId("wide").innerHTML =
-    widest.name + "<em>" + Math.abs(widest.gap).toFixed(2) + " pp</em>";
+    widest.name + "<em>" + widest.gap.toFixed(2) + " pp</em>";
   const query = byId("query")
     .value.toUpperCase()
     .replace(/[^A-Z]/g, "");
-  byId("pairs").innerHTML =
+  const table = byId("pairs");
+  table.innerHTML =
     pairs
+      .filter(p => !byId("only-watched").checked || window.pairPreferences?.watched(p.name))
       .filter((p) => p.name.replace("/", "").includes(query))
       .sort(pairOrders[byId("sort").value])
       .map(
         (p) =>
           '<tr class="' +
-          (p.gap > 0 ? "long" : p.gap < 0 ? "short" : "even") +
-          '"><td><b>' +
+          (p.direction > 0 ? "long" : p.direction < 0 ? "short" : "even") +
+          '" data-pair="' + p.name + '"><td><b>' +
           p.name +
           "</b><small class=legs>" + p.name.split("/").map(code => code + " " + signed(values[code]) + "%").join(" · ") + "</small></td><td>" +
-          signed(p.gap) +
+          p.gap.toFixed(2) +
           '</td><td><mark class="' +
-          (p.gap < 0 ? "sell" : p.gap === 0 ? "flat" : "") +
+          (p.direction < 0 ? "sell" : p.gap === 0 ? "flat" : "") +
           '">' +
-          (p.gap > 0 ? "BUY" : p.gap < 0 ? "SELL" : "NEUTRAL") +
-          "</mark></td></tr>",
+          (p.direction > 0 ? "BUY" : p.direction < 0 ? "SELL" : "NEUTRAL") +
+          '</mark></td><td><button type="button" class="alert-action" aria-haspopup="dialog">Watch</button></td></tr>',
       )
-      .join("") || '<tr><td colspan="3">No matching pairs.</td></tr>';
+      .join("") || '<tr><td colspan="4">No matching pairs.</td></tr>';
+  window.pairPreferences?.decorate();
 }
 async function refresh() {
   if (activeRequest) return;
@@ -166,6 +180,8 @@ async function refresh() {
   }
 }
 function displaySnapshot() {
+    recordGaps(frameControl.value,pairsFor(snapshot.data),snapshot.time);
+    setFrameLoading(false);
     try {
       localStorage.setItem(snapshotKey(), JSON.stringify(snapshot));
     } catch {}
@@ -173,6 +189,7 @@ function displaySnapshot() {
     showFetchStatus("Last fetched from " + source);
 }
 function showFeedError() {
+    setFrameLoading(false);
     if (!snapshot) { byId("bars").replaceChildren(); byId("chart-period").textContent = frameControl.selectedOptions[0].textContent + " · Relative to USD"; }
     showFetchStatus(snapshot ? "Feed unavailable · Cached · Last fetched from " + source : "Feed unavailable · Waiting for data", Boolean(snapshot));
 }
@@ -221,19 +238,18 @@ function schedule(fetchOnce = false) {
     if (seconds || fetchOnce) subscribe(seconds);
     return;
   }
-  if (seconds) {
-    refresh();
-    timer = setInterval(refresh, seconds * 1000);
-  }
+  if (seconds || fetchOnce) refresh();
+  if (seconds) timer = setInterval(refresh, seconds * 1000);
 }
+window.addEventListener("gap-alerts-changed", () => schedule(true));
 frameControl.onchange = () => {
   activeRequest?.abort();
   activeRequest = undefined;
   try { localStorage.setItem("fx-frame",frameControl.value); } catch {}
   loadFrame();
   render();
+  setFrameLoading(true);
   schedule(true);
-  if (!liveFeed && byId("interval").value === "0") refresh();
 };
 loadFrame();
 const interval = byId("interval");
@@ -246,6 +262,7 @@ try {
   query.value = localStorage.getItem("fx-pair-query") ?? "";
 } catch {}
 interval.onchange = () => {
+  if (interval.value === "0") setFrameLoading(false);
   try { localStorage.setItem("fx-refresh-interval", interval.value); } catch {}
   schedule();
 };
@@ -297,6 +314,7 @@ syncThemeButton();
 
 
 byId("reset").onclick = () => {
+  setFrameLoading(false);
   activeRequest?.abort();
   activeRequest = undefined;
   for (const key of ["fx-pair-query","fx-frame","fx-pair-sort","fx-domain-theme","fx-refresh-interval"]) {

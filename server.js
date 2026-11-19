@@ -1,3 +1,4 @@
+import { localAlerts } from "./alerts.js";
 import {historicalFeed,fixtureHistory} from './history.js';
 import http from "node:http";
 import { readFile } from "node:fs/promises";
@@ -5,6 +6,8 @@ import { feed, fixtureResponse } from "./feed.js";
 const root = process.argv.includes("--production") ? "./dist/" : "./app/";
 const types = {
   "index.html": "text/html",
+  "alerts-ui.js":"text/javascript",
+  "trends.js":"text/javascript",
   "app.js": "text/javascript",
   "model.js": "text/javascript",
   "sw.js": "text/javascript",
@@ -13,10 +16,12 @@ const types = {
   "icon512.png": "image/png",
 };
 const port = Number(process.env.PORT || 4173);
+const handleAlerts = localAlerts();
 const server = http
   .createServer(async (req, res) => {
     try {
       const url = new URL(req.url, "http://localhost");
+      if (url.pathname === "/alerts") return await handleAlerts(req,res);
       if (req.method !== "GET") {
         res.writeHead(405, { Allow: "GET" }).end();
         return;

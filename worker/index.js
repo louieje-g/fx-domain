@@ -1,12 +1,14 @@
+import { GapAlerts } from "./gap-alerts.js";
 import { DurableObject } from "cloudflare:workers";
 import { readPerformance } from "../feed.js";
 
 export default {
   fetch(request, env) {
     const url = new URL(request.url);
-    if (url.pathname !== "/feed") return new Response("Not found", {status:404});
     if (request.headers.get("Origin") !== "https://fx-domain.web.app")
       return new Response("Forbidden", {status:403});
+    if (url.pathname === "/alerts") return env.FEED.getByName("all-currencies").fetch(request);
+    if (url.pathname !== "/feed") return new Response("Not found", {status:404});
     if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket")
       return new Response("WebSocket required", {status:426});
     if (!/^[1-8]$/.test(url.searchParams.get("v")) ||
@@ -17,7 +19,13 @@ export default {
 };
 
 export class SharedFeed extends DurableObject {
+  constructor(ctx,env) {
+    super(ctx,env);
+    this.alerts=new GapAlerts(ctx.storage);
+    ctx.blockConcurrencyWhile(()=>this.alerts.init());
+  }
   async fetch(request) {
+    if (new URL(request.url).pathname === "/alerts") return this.alerts.handle(request);
     const params = new URL(request.url).searchParams;
     const [client, server] = Object.values(new WebSocketPair());
     this.ctx.acceptWebSocket(server);
@@ -43,6 +51,12 @@ export class SharedFeed extends DurableObject {
       }
       next = Math.min(next, sub.due);
     }
+    const checkAlerts=this.alerts.rules.size && !(this.nextAlertCheck > now);
+    if (checkAlerts) {
+      this.nextAlertCheck=Math.floor(now/5000)*5000+10000;
+      for (const {frame} of this.alerts.rules.values()) if (!groups.has(frame)) groups.set(frame,[]);
+    }
+    if (this.alerts.rules.size) next=Math.min(next,this.nextAlertCheck);
     if (Number.isFinite(next)) await this.ctx.storage.setAlarm(next);
     await Promise.all([...groups].map(async ([v, sockets]) => {
       let message;
@@ -55,6 +69,7 @@ export class SharedFeed extends DurableObject {
       for (const socket of sockets) {
         try { socket.send(JSON.stringify(message)); } catch {}
       }
+      if (checkAlerts && message.data) await this.alerts.evaluate(v,message.data);
     }));
   }
 

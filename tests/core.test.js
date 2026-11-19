@@ -3,14 +3,14 @@ import assert from "node:assert/strict";
 import { fixture, pairsFor, codes } from "../app/model.js";
 import { feed } from "../feed.js";
 
-test("28 stable pairs, signed gaps, ties and zero rounding", () => {
+test("28 stable pairs, absolute gaps, ties and zero rounding", () => {
   const pairs = pairsFor(fixture);
   assert.equal(new Set(pairs.map((p) => p.name)).size, 28);
   assert.equal(pairs.length, 28);
   for (const [name, gap] of [
     ["EUR/JPY", 0.9],
     ["EUR/USD", 0.5],
-    ["USD/CAD", -0.1],
+    ["USD/CAD", 0.1],
     ["GBP/AUD", 0],
   ])
     assert.equal(pairs.find((p) => p.name === name).gap, gap);

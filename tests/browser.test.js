@@ -34,15 +34,15 @@ test("production dashboard: controls, snapshots, layout and offline reload", asy
   ])
     assert.equal(await page.locator("#" + id).textContent(), str);
   for (const [name, result] of [
-    ["EUR/USD", "EUR +0.50% · USD 0.00%+0.50BUY"],
-    ["USD/CAD", "USD 0.00% · CAD +0.10%-0.10SELL"],
+    ["EUR/USD", "EUR +0.50% · USD 0.00%0.50BUY"],
+    ["USD/CAD", "USD 0.00% · CAD +0.10%0.10SELL"],
     ["GBP/AUD", "GBP +0.20% · AUD +0.20%0.00NEUTRAL"],
   ])
     assert.equal(
       (await rows.filter({ hasText: name }).locator("td").allTextContents()).slice(0,3).join(""),
       name + result,
     );
-  assert.equal(await rows.first().locator("td").count(),3);
+  assert.equal(await rows.first().locator("td").count(),4);
   assert.match(await page.locator("#fetch-time").innerText(),/^[A-Z][a-z]{2}, \d{2} \d{4} · /);
   for(const v of ["2","3","8","4","5","6","7","1"]) {
     await Promise.all([page.waitForResponse(r=>r.url().endsWith(v==="1"?"/fixture-feed":"/fixture-feed?v="+v)),page.selectOption("#frame",v)]);

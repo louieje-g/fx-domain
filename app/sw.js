@@ -3,6 +3,8 @@ const shell = [
   "./",
   "./index.html",
   "./app.js",
+  "./alerts-ui.js",
+  "./trends.js",
   "./model.js",
   "./manifest.json",
   "./icon192.png",
@@ -44,3 +46,21 @@ self.addEventListener("fetch", (event) => {
 
 
 
+
+self.addEventListener("push", event => {
+  const payload=event.data.json();
+  if(payload.type==="test") {
+    event.waitUntil(self.registration.showNotification("FX Domain test notification",{body:"Gap alerts can reach this device.",icon:"./icon192.png"}));
+    return;
+  }
+  const {pair,frame,threshold,gap} = payload;
+  const period = ["","Daily","Weekly","Monthly","Quarter","Half year","Year","Year to date","Month to date"][frame];
+  event.waitUntil(self.registration.showNotification(pair+" · "+period+" gap alert", {
+    body:"Absolute gap reached "+gap.toFixed(2)+" pp (threshold "+threshold.toFixed(2)+" pp).",
+    icon:"./icon192.png"
+  }));
+});
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+  event.waitUntil(clients.openWindow(self.registration.scope));
+});

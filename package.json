@@ -24,5 +24,9 @@
   "homepage": "https://github.com/louieje-g/fx-domain#readme",
   "devDependencies": {
     "playwright-core": "^1.65.1"
+  },
+  "dependencies": {
+    "@block65/webcrypto-web-push": "^2.0.0",
+    "web-push": "^4.0.0"
   }
 }

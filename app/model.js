@@ -16,9 +16,10 @@ export function normalize(raw) {
 }
 export function pairsFor(values) {
   return codes.flatMap((base, i) =>
-    codes.slice(i + 1).map((quote) => ({
-      name: base + "/" + quote,
-      gap: Math.round((values[base] - values[quote]) * 100) / 100 || 0,
-    })),
+    codes.slice(i + 1).map((quote) => {
+      const difference = values[base] - values[quote];
+      const gap = Math.round(Math.abs(difference) * 100) / 100;
+      return {name: base + "/" + quote, gap, direction: gap ? Math.sign(difference) : 0};
+    }),
   );
 }
