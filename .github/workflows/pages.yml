@@ -26,6 +26,6 @@ jobs:
       - run: node scripts/pages.js
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: dist/pages
       - id: deploy
         uses: actions/deploy-pages@v4
