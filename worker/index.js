@@ -22,7 +22,11 @@ export class SharedFeed extends DurableObject {
   constructor(ctx,env) {
     super(ctx,env);
     this.alerts=new GapAlerts(ctx.storage);
-    ctx.blockConcurrencyWhile(()=>this.alerts.init());
+    this.latest = new Map();
+    ctx.blockConcurrencyWhile(async()=>{
+      await this.alerts.init();
+      this.throttle = await ctx.storage.get("finviz-throttle") || {until:0,delay:0};
+    });
   }
   async fetch(request) {
     if (new URL(request.url).pathname === "/alerts") return this.alerts.handle(request);
@@ -58,19 +62,36 @@ export class SharedFeed extends DurableObject {
     }
     if (this.alerts.rules.size) next=Math.min(next,this.nextAlertCheck);
     if (Number.isFinite(next)) await this.ctx.storage.setAlarm(next);
-    await Promise.all([...groups].map(async ([v, sockets]) => {
-      let message;
-      try {
+    for (const [v, sockets] of groups) {
+      let message=this.latest.get(v);
+      if (this.throttle.delay && Date.now() > this.throttle.until + 3600000) {
+        this.throttle={until:0,delay:0};
+        await this.ctx.storage.delete("finviz-throttle");
+      }
+      const limited = Date.now() < this.throttle.until;
+      const recentlyRead = message && Date.now()-Date.parse(message.time) < (this.throttle.delay ? 30000 : 0);
+      let fresh=false;
+      if (!limited && !recentlyRead) try {
         const data = await readPerformance(v);
         message = {v, data, time:new Date().toISOString()};
-      } catch {
+        this.latest.set(v,message);
+        fresh=true;
+      } catch (error) {
+        if (error.status===429) {
+          const delay=Math.max(error.retryMs,Math.min(900000,Math.max(60000,this.throttle.delay*2)));
+          this.throttle={until:Date.now()+delay,delay};
+          await this.ctx.storage.put("finviz-throttle",this.throttle);
+          console.warn("Finviz rate limit; next retry in seconds",delay/1000);
+        }
         message = {v, error:"Finviz unavailable"};
       }
+      if (limited || !message) message={v,error:"Finviz unavailable"};
+      if (message.error && this.throttle.until>Date.now()) message.retryAt=this.throttle.until;
       for (const socket of sockets) {
         try { socket.send(JSON.stringify(message)); } catch {}
       }
-      if (checkAlerts && message.data) await this.alerts.evaluate(v,message.data);
-    }));
+      if (fresh && this.alerts.rules.size) await this.alerts.evaluate(v,message.data);
+    }
   }
 
   webSocketClose(socket) { socket.close(1000); }

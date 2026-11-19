@@ -188,10 +188,11 @@ function displaySnapshot() {
     render();
     showFetchStatus("Last fetched from " + source);
 }
-function showFeedError() {
+function showFeedError(retryAt) {
     setFrameLoading(false);
     if (!snapshot) { byId("bars").replaceChildren(); byId("chart-period").textContent = frameControl.selectedOptions[0].textContent + " · Relative to USD"; }
-    showFetchStatus(snapshot ? "Feed unavailable · Cached · Last fetched from " + source : "Feed unavailable · Waiting for data", Boolean(snapshot));
+    const reason = Number.isFinite(retryAt) ? "Finviz rate limit · Retry at "+new Date(retryAt).toLocaleTimeString() : "Feed unavailable";
+    showFetchStatus(reason + (snapshot ? " · Cached · Last fetched from " + source : " · Waiting for data"), Boolean(snapshot));
 }
 
 let stream;
@@ -214,11 +215,12 @@ function subscribe(seconds) {
     timeout = watchdog();
     try {
       const message = JSON.parse(data);
-      if (message.v !== frame || message.error) throw Error();
+      if (message.v !== frame) throw Error();
+      if (message.error) throw Object.assign(Error(),{retryAt:message.retryAt});
       snapshot = {data: normalize(message.data), time: new Date(message.time).toISOString()};
       displaySnapshot();
-    } catch {
-      showFeedError();
+    } catch (error) {
+      showFeedError(error.retryAt);
     }
     if (!seconds) closeStream();
   };

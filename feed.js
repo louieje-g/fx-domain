@@ -5,7 +5,12 @@ export async function readPerformance(v, request = fetch) {
   const response = await request("https://finviz.com/api/forex_perf?v=" + v, {
     signal: AbortSignal.timeout(7000), cache: "no-store"
   });
-  if (!response.ok) throw Error("Finviz unavailable");
+  if (response.status === 429) {
+    const header=response.headers.get("retry-after");
+    const delay=header && /^\d+$/.test(header) ? Number(header)*1000 : Date.parse(header)-Date.now();
+    throw Object.assign(Error("Finviz rate limit"), {status:429,retryMs:Math.max(0,delay || 0)});
+  }
+  if (!response.ok) throw Error("Finviz HTTP " + response.status);
   return normalize(await response.json());
 }
 
