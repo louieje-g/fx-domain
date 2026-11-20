@@ -15,14 +15,7 @@ if (demo) {
   document.querySelector("footer").textContent =
     "Development fixture · Absolute gap in percentage points.";
 }
-const frameControl = byId("frame");
-try {
-  const saved = localStorage.getItem("fx-frame");
-  if (/^[1-8]$/.test(saved)) frameControl.value = saved;
-} catch {}
-function snapshotKey() {
-  return frameControl.value === "1" ? keyPrefix : keyPrefix + "-v" + frameControl.value;
-}
+const dailyFrame = "1";
 function showFetchStatus(label, cached = false) {
   byId("status").dataset.cached = String(cached);
   byId("feed-label").textContent = label;
@@ -33,22 +26,15 @@ function showFetchStatus(label, cached = false) {
     String(date.getDate()).padStart(2,"0") + " " + date.getFullYear() + " · " +
     date.toLocaleTimeString("en-US");
 }
-function setFrameLoading(loading) {
+function setLoading(loading) {
   const indicator = byId("frame-loading");
   indicator.hidden = !loading;
-  indicator.textContent = loading ? "Loading " + frameControl.selectedOptions[0].textContent + "…" : "";
+  indicator.textContent = loading ? "Loading daily performance…" : "";
   byId("bars").setAttribute("aria-busy", String(loading));
 }
-function loadFrame() {
-  snapshot = undefined;
-  const label = frameControl.selectedOptions[0].textContent;
-  if (!byId("bars").childElementCount) byId("chart-period").textContent = label + " · Relative to USD";
-  byId("scanner-period").textContent = "28 currency pairs · " + label + " performance vs USD";
-  byId("bias-heading").textContent = label;
-  byId("pairs").replaceChildren();
-  for(const id of ["low","high","wide"]) byId(id).textContent="—";
+function loadSnapshot() {
 try {
-  const saved = JSON.parse(localStorage.getItem(snapshotKey()));
+  const saved = JSON.parse(localStorage.getItem(keyPrefix));
   if (typeof saved?.time === "string" && saved.time.trim())
     snapshot = { data: normalize(saved.data), time: saved.time };
 } catch {}
@@ -93,7 +79,6 @@ function render() {
   const limit = Math.max(1, Math.ceil(Math.max(...codes.map(code => Math.abs(values[code])))));
   drawAxis(limit);
   const ranked = [...codes].sort((a, b) => values[b] - values[a]);
-  byId("chart-period").textContent = frameControl.selectedOptions[0].textContent + " · Relative to USD";
   ranked.forEach((code, rank) => {
     const value = values[code];
     let column = byId("currency-" + code);
@@ -160,8 +145,8 @@ async function refresh() {
 
   try {
     const endpoint = hostedSnapshots
-      ? "./data/" + (demo ? "fixture-" : "") + frameControl.value + ".json"
-      : (demo ? "./fixture-feed" : "./feed") + (frameControl.value === "1" ? "" : "?v="+frameControl.value);
+      ? "./data/" + (demo ? "fixture-" : "") + "1.json"
+      : demo ? "./fixture-feed" : "./feed";
     const r = await fetch(endpoint, {
       cache: "no-store",
       signal: AbortSignal.any([controller.signal, AbortSignal.timeout(8500)]),
@@ -180,17 +165,17 @@ async function refresh() {
   }
 }
 function displaySnapshot() {
-    recordGaps(frameControl.value,pairsFor(snapshot.data),snapshot.time);
-    setFrameLoading(false);
+    recordGaps(dailyFrame,pairsFor(snapshot.data),snapshot.time);
+    setLoading(false);
     try {
-      localStorage.setItem(snapshotKey(), JSON.stringify(snapshot));
+      localStorage.setItem(keyPrefix, JSON.stringify(snapshot));
     } catch {}
     render();
     showFetchStatus("Last fetched from " + source);
 }
 function showFeedError(retryAt) {
-    setFrameLoading(false);
-    if (!snapshot) { byId("bars").replaceChildren(); byId("chart-period").textContent = frameControl.selectedOptions[0].textContent + " · Relative to USD"; }
+    setLoading(false);
+    if (!snapshot) byId("bars").replaceChildren();
     const reason = Number.isFinite(retryAt) ? "Finviz rate limit · Retry at "+new Date(retryAt).toLocaleTimeString() : "Feed unavailable";
     showFetchStatus(reason + (snapshot ? " · Cached · Last fetched from " + source : " · Waiting for data"), Boolean(snapshot));
 }
@@ -203,11 +188,10 @@ function closeStream() {
 }
 function subscribe(seconds) {
   const url = new URL(liveFeed);
-  const frame = frameControl.value;
-  url.search = new URLSearchParams({v: frame, seconds: seconds || 5});
+  url.search = new URLSearchParams({v: dailyFrame, seconds: seconds || 10});
   const socket = new WebSocket(url);
   stream = socket;
-  const watchdog = () => setTimeout(() => socket.close(), (seconds || 5) * 1000 + 15000);
+  const watchdog = () => setTimeout(() => socket.close(), (seconds || 10) * 1000 + 15000);
   let timeout = watchdog();
   socket.onmessage = ({data}) => {
     if (stream !== socket) return;
@@ -215,7 +199,7 @@ function subscribe(seconds) {
     timeout = watchdog();
     try {
       const message = JSON.parse(data);
-      if (message.v !== frame) throw Error();
+      if (message.v !== dailyFrame) throw Error();
       if (message.error) throw Object.assign(Error(),{retryAt:message.retryAt});
       snapshot = {data: normalize(message.data), time: new Date(message.time).toISOString()};
       displaySnapshot();
@@ -229,12 +213,13 @@ function subscribe(seconds) {
     if (stream !== socket) return;
     stream = undefined;
     showFeedError();
-    if (seconds) timer = setTimeout(() => subscribe(seconds), 5000);
+    if (seconds) timer = setTimeout(() => subscribe(seconds), 10000);
   };
 }
 function schedule(fetchOnce = false) {
   clearInterval(timer);
   const seconds = Number(byId("interval").value);
+  if (!snapshot && (seconds || fetchOnce)) setLoading(true);
   if (liveFeed) {
     closeStream();
     if (seconds || fetchOnce) subscribe(seconds);
@@ -244,27 +229,22 @@ function schedule(fetchOnce = false) {
   if (seconds) timer = setInterval(refresh, seconds * 1000);
 }
 window.addEventListener("gap-alerts-changed", () => schedule(true));
-frameControl.onchange = () => {
-  activeRequest?.abort();
-  activeRequest = undefined;
-  try { localStorage.setItem("fx-frame",frameControl.value); } catch {}
-  loadFrame();
-  render();
-  setFrameLoading(true);
-  schedule(true);
-};
-loadFrame();
+loadSnapshot();
 const interval = byId("interval");
 const query = byId("query");
 try {
-  const savedInterval = localStorage.getItem("fx-refresh-interval");
+  let savedInterval = localStorage.getItem("fx-refresh-interval");
+  if (savedInterval === "5") {
+    savedInterval = "10";
+    localStorage.setItem("fx-refresh-interval", savedInterval);
+  }
   if (Array.from(interval.options).some(option => option.value === savedInterval)) {
     interval.value = savedInterval;
   }
   query.value = localStorage.getItem("fx-pair-query") ?? "";
 } catch {}
 interval.onchange = () => {
-  if (interval.value === "0") setFrameLoading(false);
+  if (interval.value === "0") setLoading(false);
   try { localStorage.setItem("fx-refresh-interval", interval.value); } catch {}
   schedule();
 };
@@ -316,19 +296,17 @@ syncThemeButton();
 
 
 byId("reset").onclick = () => {
-  setFrameLoading(false);
+  setLoading(false);
   activeRequest?.abort();
   activeRequest = undefined;
   for (const key of ["fx-pair-query","fx-frame","fx-pair-sort","fx-domain-theme","fx-refresh-interval"]) {
     try { localStorage.removeItem(key); } catch {}
   }
   query.value = "";
-  frameControl.value = "1";
   byId("sort").value = "wide";
-  interval.value = "10";
+  interval.value = "30";
   document.documentElement.dataset.theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   syncThemeButton();
-  loadFrame();
   render();
   schedule();
 };

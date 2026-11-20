@@ -44,12 +44,20 @@ test("production dashboard: controls, snapshots, layout and offline reload", asy
     );
   assert.equal(await rows.first().locator("td").count(),4);
   assert.match(await page.locator("#fetch-time").innerText(),/^[A-Z][a-z]{2}, \d{2} \d{4} · /);
-  for(const v of ["2","3","8","4","5","6","7","1"]) {
-    await Promise.all([page.waitForResponse(r=>r.url().endsWith(v==="1"?"/fixture-feed":"/fixture-feed?v="+v)),page.selectOption("#frame",v)]);
-    await page.waitForSelector("#currency-EUR");
-    assert.equal(await rows.count(),28);
-    assert.equal(await page.locator("#currency-EUR .value").textContent(),v==="1"?"+0.50%":((Number(v)%2?"-":"+")+(3*Number(v)).toFixed(2)+"%"));
-  }
+  assert.equal(await page.locator("#frame, #alert-frame").count(),0);
+  assert.equal((await page.request.get(new URL("/fixture-feed?v=2", url).href)).status(),400);
+  await page.getByRole("button", {name:"Watch",exact:true}).first().click();
+  const alert = page.getByRole("dialog", {name:"EUR/JPY gap alert"});
+  assert.equal(await alert.isVisible(),true);
+  assert.match(await alert.innerText(),/Current daily gap\s+0\.90 pp/);
+  assert.equal(await alert.locator("select").count(),1);
+  assert.equal(await page.inputValue("#alert-threshold"),"1.00");
+  await page.selectOption("#alert-direction","down");
+  assert.equal(await page.inputValue("#alert-threshold"),"0.80");
+  await page.fill("#alert-threshold","0.70");
+  await page.selectOption("#alert-direction","up");
+  assert.equal(await page.inputValue("#alert-threshold"),"0.70");
+  await page.getByRole("button", {name:"Close gap alert"}).click();
   for (const [q, n] of [
     ["jpy", 7],
     ["eur/usd", 1],
@@ -89,13 +97,17 @@ test("production dashboard: controls, snapshots, layout and offline reload", asy
         }),
       );
   });
-  assert.equal(await page.inputValue("#interval"),"10");
-  await page.selectOption("#interval","5");
+  assert.equal(await page.inputValue("#interval"),"30");
+  assert.deepEqual(await page.locator("#interval option").evaluateAll(options => options.map(option => option.value)), ["10","30","60","0"]);
   await page.fill("#query","JPY");
-  await page.selectOption("#frame","2");
+  await page.evaluate(() => {
+    localStorage.setItem("fx-frame","2");
+    localStorage.setItem("fx-refresh-interval","5");
+  });
   await page.reload();
-  assert.equal(await page.inputValue("#interval"),"5");
-  assert.equal(await page.inputValue("#frame"),"2");
+  assert.equal(await page.inputValue("#interval"),"10");
+  assert.equal(await page.evaluate(() => localStorage.getItem("fx-refresh-interval")),"10");
+  assert.match(await page.locator(".panel-head").first().innerText(),/Daily · Relative to USD/);
   await page.waitForSelector("#pairs td b");
   assert.equal(await rows.count(),7);
   await page.selectOption("#interval","0");
@@ -111,10 +123,10 @@ test("production dashboard: controls, snapshots, layout and offline reload", asy
   assert.equal(await page.locator("html").getAttribute("data-theme"), theme);
   await context.setOffline(false);
   await page.click("#reset");
-  for(const [id,value] of [["query",""],["frame","1"],["sort","wide"],["interval","10"]]) assert.equal(await page.inputValue("#"+id),value);
+  for(const [id,value] of [["query",""],["sort","wide"],["interval","30"]]) assert.equal(await page.inputValue("#"+id),value);
   assert.ok(await page.evaluate(()=>document.documentElement.dataset.theme===(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light")));
   await page.reload();
-  assert.equal(await page.inputValue("#interval"),"10");
+  assert.equal(await page.inputValue("#interval"),"30");
   const live = await browser.newContext({ serviceWorkers: "block" });
   const view = await live.newPage();
   await view.clock.install();

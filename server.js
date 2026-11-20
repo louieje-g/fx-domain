@@ -1,5 +1,4 @@
 import { localAlerts } from "./alerts.js";
-import {historicalFeed,fixtureHistory} from './history.js';
 import http from "node:http";
 import { readFile } from "node:fs/promises";
 import { feed, fixtureResponse } from "./feed.js";
@@ -34,20 +33,12 @@ const server = http
       }
       if (url.pathname === "/feed" || url.pathname === "/fixture-feed") {
         const v = url.searchParams.get("v") ?? "1";
-        if (!/^[1-8]$/.test(v)) { res.writeHead(400).end("Unknown timeframe"); return; }
+        if (v !== "1") { res.writeHead(400).end("Unknown timeframe"); return; }
         const reply =
-          url.pathname === "/feed" ? await feed(fetch,v) : fixtureResponse(v);
+          url.pathname === "/feed" ? await feed(fetch,v) : fixtureResponse();
         res
           .writeHead(reply.status, Object.fromEntries(reply.headers))
           .end(await reply.text());
-        return;
-      }
-      if (url.pathname === '/history' || url.pathname === '/fixture-history') {
-        res.setHeader('Cache-Control','no-store');
-        res.setHeader('Content-Type','application/json');
-        try {
-          res.end(JSON.stringify(url.pathname === '/history' ? await historicalFeed() : fixtureHistory()));
-        } catch { res.writeHead(502).end('{"error":"History unavailable"}'); }
         return;
       }
       const file = url.pathname.slice(1) || "index.html";

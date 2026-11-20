@@ -547,8 +547,7 @@
           min-width: 145px;
         }
       }
-    .legs { display:block; color:var(--muted); font-size:.8125rem; font-weight:400; margin-top:4px; white-space:normal; } .bias-key { margin:0; padding:0 20px 14px; font-size:.875rem; color:var(--muted); line-height:1.45; }.period-control{display:flex;align-items:center;gap:.75rem;margin:0 0 1rem;color:var(--muted)}.feed-toolbar {display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:16px}
-.feed-toolbar .period-control {margin:0}
+    .legs { display:block; color:var(--muted); font-size:.8125rem; font-weight:400; margin-top:4px; white-space:normal; } .bias-key { margin:0; padding:0 20px 14px; font-size:.875rem; color:var(--muted); line-height:1.45; }.feed-toolbar {display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:16px}
 .feed-toolbar #status {display:flex; align-items:baseline; flex-wrap:wrap; gap:4px 12px; background:#e2f5ef; color:#154b40; border-inline-start:4px solid #17745e; border-radius:6px; padding:9px 14px; font-size:.875rem}
 #fetch-time {font-size:1rem; font-weight:750; font-variant-numeric:tabular-nums}
 [data-theme=dark] .feed-toolbar #status {background:#193d39; color:#c1ffeb; border-color:#56dbb0}
@@ -559,6 +558,7 @@
   .feed-toolbar { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
   .feed-toolbar label { display:grid; gap:5px; font-size:.875rem; }
   .feed-toolbar select { width:100%; margin:0; min-height:44px; }
+  .feed-toolbar #reset { align-self:end; min-height:44px; }
   .feed-toolbar #status { grid-column:1/-1; margin:0; }
   .scanner-tools { display:grid; grid-template-columns:1fr; gap:8px; }
   .scanner-tools label { display:grid; grid-template-columns:auto 1fr; align-items:center; gap:8px; }
@@ -685,14 +685,11 @@
       <div class="feed-toolbar"><label class="controls"
           >Auto-refresh
           <select id="interval">
-            <option value="5">5 seconds</option>
-            <option value="10" selected>10 seconds</option>
-            <option value="30">30 seconds</option>
+            <option value="10">10 seconds</option>
+            <option value="30" selected>30 seconds</option>
             <option value="60">1 minute</option>
             <option value="0">Paused</option>
-          </select></label
-        ><label class="period-control">Time frame
-<select id="frame"><option value="1">Daily</option><option value="2">Weekly</option><option value="3">Monthly</option><option value="8">Month to date</option><option value="4">Quarter</option><option value="5">Half year</option><option value="6">Year</option><option value="7">Year to date</option></select></label>
+          </select></label>
       <button id="reset" type="button">Reset to defaults</button><div id="status" role="status"><span id="feed-label">Connecting to Finviz…</span> <strong id="fetch-time"></strong></div></div>
       <section class="summary" aria-label="Performance highlights">
         <div class="metric">
@@ -709,7 +706,7 @@
         <div class="panel-head">
           <div>
             <h2>Relative performance</h2>
-            <p id="chart-period" class="sub">1 day · Relative to USD</p>
+            <p class="sub">Daily · Relative to USD</p>
           </div>
           <div class="legend"><span>Gain</span><span>Loss</span></div>
         </div>
@@ -725,7 +722,7 @@
         <div class="panel-head">
           <div>
             <h2 id="alerts-panel">Currency pair monitor</h2>
-            <p id="scanner-period" class="sub">28 currency pairs · 1-day performance vs USD</p>
+            <p class="sub">28 currency pairs · Daily performance vs USD</p>
           </div>
           <div class="scanner-tools">
             <label
@@ -756,7 +753,7 @@
               <tr>
                 <th>Currency <span>pair</span></th>
                 <th>Absolute <span>gap</span></th>
-                <th><span id="bias-heading">Daily</span> bias</th>
+                <th><span>Daily</span> bias</th>
                 <th scope="col">Alert</th>
               </tr>
             </thead>
@@ -781,11 +778,10 @@
             <button type="button" id="alert-close" aria-label="Close gap alert">×</button>
           </div>
           <div class="alert-fields">
-            <label>Time frame<select id="alert-frame" autofocus></select></label>
-            <label>Direction<select id="alert-direction"><option value="up">Up · widening</option><option value="down">Down · narrowing</option></select></label>
-            <label>Threshold (pp)<input id="alert-threshold" inputmode="decimal" type="number" min="0.01" step="0.01" value="1.00" required></label>
+            <label>Direction<select id="alert-direction" autofocus><option value="up">Up · widening</option><option value="down">Down · narrowing</option></select></label>
+            <label>Threshold (pp)<input id="alert-threshold" inputmode="decimal" type="number" min="0.01" step="0.01" required></label>
           </div>
-          <div class="gap-context"><span>Current absolute gap</span><strong id="current-gap">—</strong><small id="gap-distance"></small></div>
+          <div class="gap-context"><span>Current daily gap</span><strong id="current-gap">—</strong><small id="gap-distance"></small></div>
           <button type="button" id="test-notification">Send test notification</button>
           <p id="alert-status" role="status"></p>
           <div class="alert-actions">

@@ -7,7 +7,7 @@ test("a closed-client rule triggers once per crossing and re-arms below threshol
   let change = -0.5;
   const sent = [];
   const alerts = createAlerts(":memory:",async()=>({...fixture,EUR:change}),async(sub,payload)=>sent.push(JSON.parse(payload)));
-  alerts.save("device",{pair:"EUR/USD",frame:"2",threshold:1,subscription:{endpoint:"https://fcm.googleapis.com/test",keys:{auth:"a".repeat(22),p256dh:"a".repeat(87)}}});
+  alerts.save("device",{pair:"EUR/USD",frame:"1",threshold:1,subscription:{endpoint:"https://fcm.googleapis.com/test",keys:{auth:"a".repeat(22),p256dh:"a".repeat(87)}}});
   await alerts.poll();
   for (change of [-1,-1.2,0.99,1.1]) await alerts.poll();
   assert.deepEqual(sent.map(m=>m.gap),[1,1.1]);

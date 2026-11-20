@@ -44,12 +44,12 @@ test("feed normalizes percent units and rejects whole malformed responses", asyn
   );
 });
 
-test("all eight selectors use the matching Finviz API query",async()=>{
-  for(let v=1;v<=8;v++) {
-    const result=await feed(async url=>{
-      assert.equal(url,"https://finviz.com/api/forex_perf?v="+v);
-      return Response.json(fixture);
-    },String(v));
-    assert.equal(result.status,200);
-  }
+test("the feed requests only Daily from Finviz", async () => {
+  const result = await feed(async url => {
+    assert.equal(url, "https://finviz.com/api/forex_perf?v=1");
+    return Response.json(fixture);
+  });
+  assert.equal(result.status, 200);
+  const removed = await feed(() => assert.fail("Unexpected Finviz request"), "2");
+  assert.equal(removed.status, 502);
 });

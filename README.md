@@ -34,7 +34,7 @@ The test command builds the browser assets, then runs Node tests and Playwright 
 
 GET /feed reads https://finviz.com/api/forex_perf with a 7-second timeout. The observed response was a flat JSON object with numeric percent values, including an extra BTC field. The adapter selects EUR, GBP, AUD, NZD, USD, CAD, CHF and JPY in that order and preserves the original numeric scale (0.50 means +0.50%). Any missing or nonfinite required reading invalidates the entire response. The endpoint sends Cache-Control: no-store on success and failure.
 
-The browser checks immediately and every 10 seconds by default. Its 8.5-second timeout and in-flight guard bound each refresh. The provider’s own update frequency is unverified. Pausing stops future checks. A failed check retains the previous successful timestamp and values. After one successful visit and service worker installation, the shell can reopen offline on localhost or HTTPS. Clearing browser site data removes the cached readings.
+The browser checks immediately and every 30 seconds by default. The fastest refresh option is 10 seconds. Its 8.5-second timeout and in-flight guard bound each refresh. The provider’s own update frequency is unverified. Pausing stops future checks. A failed check retains the previous successful timestamp and values. After one successful visit and service worker installation, the shell can reopen offline on localhost or HTTPS. Clearing browser site data removes the cached readings.
 
 The scanner produces 28 fixed-orientation pairs, rounds base minus quote to two decimal places in percentage points, and uses the sign for BUY, SELL or NEUTRAL. These labels describe relative performance. The fixture produces EUR +0.50%, JPY -0.40%, and EUR/JPY +0.90 pp.
 

@@ -4,15 +4,14 @@ const el = id => document.getElementById(id);
 const endpoint = document.documentElement.dataset.alerts || "./alerts";
 const form = el("alert-form");
 const table = el("pairs");
-const period = el("alert-frame");
+const dailyFrame = "1";
 const dialog = el("alert-dialog");
 const status = el("alert-status");
 const filter = el("only-watched");
 const ruleKey = (pair, frame) => "fx-alert:" + pair + ":" + frame;
 const watchKey = pair => "fx-watch:" + pair;
 const readRule = (pair, frame) => JSON.parse(localStorage.getItem(ruleKey(pair,frame)));
-const framesFor = pair => [...period.options].filter(opt=>readRule(pair,opt.value));
-const watched = pair => framesFor(pair).length > 0 || localStorage.getItem(watchKey(pair)) === "1";
+const watched = pair => readRule(pair,dailyFrame) > 0 || localStorage.getItem(watchKey(pair)) === "1";
 let pair;
 let busy = false;
 let config;
@@ -24,12 +23,11 @@ if (legacy && localStorage.getItem("fx-alert-token")) {
   localStorage.setItem(ruleKey(legacy.pair,legacy.frame),JSON.stringify({...legacy,token:localStorage.getItem("fx-alert-token")}));
   localStorage.removeItem("fx-alert-rule");
 }
-for (const option of el("frame").options) period.add(new Option(option.text,option.value));
 const observations = new Map();
 let loadingStatus = false;
 async function refreshStatus() {
   if (fixtureMode || loadingStatus || document.hidden) return;
-  const tokens = Object.keys(localStorage).filter(k=>k.startsWith("fx-alert:")).map(k=>JSON.parse(localStorage.getItem(k))?.token).filter(Boolean);
+  const tokens = Object.keys(localStorage).filter(k=>k.startsWith("fx-alert:") && k.endsWith(":"+dailyFrame)).map(k=>JSON.parse(localStorage.getItem(k))?.token).filter(Boolean);
   if (!tokens.length) return;
   loadingStatus=true;
   try {
@@ -94,44 +92,39 @@ function decorate() {
   for (const row of table.querySelectorAll("tr[data-pair]")) {
     const name=row.dataset.pair;
     const button=row.querySelector(".alert-action");
-    const rules=framesFor(name).map(option=>{
-      const rule=readRule(name,option.value);
-      return {option,rule,reading:observations.get(rule.token)};
-    }).sort((a,b)=>(b.reading?.lastHit || "").localeCompare(a.reading?.lastHit || "") || Number(b.option.value===el("frame").value)-Number(a.option.value===el("frame").value));
+    const rule = readRule(name,dailyFrame);
     const active = watched(name);
     button.textContent = active ? "Watching" : "Watch";
     button.dataset.watched = String(active);
     button.title = (active ? "Manage alerts for " : "Set an alert for ") + name;
     const previous = row.nextElementSibling;
     if (previous?.classList.contains("alert-detail")) previous.remove();
-    if (!rules.length) {delete button.dataset.frame; continue;}
-    button.dataset.frame = rules[0].option.value;
+    if (!rule) continue;
+    const reading = observations.get(rule.token);
     const details = document.createElement("tr");
     details.className = "alert-detail "+row.className;
     details.setAttribute("aria-label",name+" alert details");
     const cell = details.insertCell();
     cell.colSpan = 4;
-    for (const {option,rule,reading} of rules) {
-      const hit = reading?.lastHit;
-      const fresh = reading?.seen && Date.now()-Date.parse(reading.seen)<45000 &&
-        Number.isFinite(reading.gap) && reading.threshold===rule.threshold && (reading.direction ?? "up")===(rule.direction ?? "up");
-      const down = rule.direction==="down";
-      const left = fresh ? Math.round((rule.threshold-reading.gap)*100)*(down?-1:1) : null;
-      let state = "Awaiting reading";
-      if (fresh) state = left>0 ? (left/100).toFixed(2)+" pp to go" : hit ? "Threshold hit" : left===0 ? "At threshold" : down ? "Below threshold" : "Above threshold";
-      const line=document.createElement("div");
-      const target=document.createElement("span");
-      target.textContent=option.text+(down?" · Down to ":" · Up to ")+rule.threshold.toFixed(2)+" pp";
-      const status=document.createElement("strong");
-      status.textContent=state;
-      line.append(target,status);
-      if (hit) {
-        const last=document.createElement("span");
-        last.textContent="Last hit "+hitTime(hit);
-        line.append(last);
-      }
-      cell.append(line);
+    const hit = reading?.lastHit;
+    const fresh = reading?.seen && Date.now()-Date.parse(reading.seen)<45000 &&
+      Number.isFinite(reading.gap) && reading.threshold===rule.threshold && (reading.direction ?? "up")===(rule.direction ?? "up");
+    const down = rule.direction==="down";
+    const left = fresh ? Math.round((rule.threshold-reading.gap)*100)*(down?-1:1) : null;
+    let state = "Awaiting reading";
+    if (fresh) state = left>0 ? (left/100).toFixed(2)+" pp to go" : hit ? "Threshold hit" : left===0 ? "At threshold" : down ? "Below threshold" : "Above threshold";
+    const line=document.createElement("div");
+    const target=document.createElement("span");
+    target.textContent="Daily"+(down?" · Down to ":" · Up to ")+rule.threshold.toFixed(2)+" pp";
+    const status=document.createElement("strong");
+    status.textContent=state;
+    line.append(target,status);
+    if (hit) {
+      const last=document.createElement("span");
+      last.textContent="Last hit "+hitTime(hit);
+      line.append(last);
     }
+    cell.append(line);
     row.after(details);
   }
 }
@@ -145,34 +138,35 @@ function close() {
 function sync() {
   if (!pair) return;
   status.dataset.error = "false";
-  const rule = readRule(pair,period.value);
+  const rule = readRule(pair,dailyFrame);
   el("alert-save").textContent = rule ? "Update alert" : "Enable alert";
-  const legacyWatch = !framesFor(pair).length && watched(pair);
+  const legacyWatch = !readRule(pair,dailyFrame) && watched(pair);
   el("alert-remove").hidden = !rule && !legacyWatch;
   el("alert-remove").textContent = rule ? "Remove alert" : "Unwatch";
   const supported = "Notification" in window && "PushManager" in window && "serviceWorker" in navigator;
   el("alert-close").disabled = busy;
   el("test-notification").disabled = busy || !supported || !config?.key;
   el("alert-save").disabled = busy || !supported || !config?.key;
-  period.disabled = el("alert-direction").disabled = el("alert-threshold").disabled = el("alert-remove").disabled = busy;
+  el("alert-direction").disabled = el("alert-threshold").disabled = el("alert-remove").disabled = busy;
   status.textContent = fixtureMode ? "Push alerts are available in live mode." : !supported ? "Push requires a supported browser or installed PWA." : configFailed ? "Alert service unavailable. Reopen the dashboard to retry." : !config?.key ? "Connecting to the alert service…" : rule ? "Active at "+rule.threshold.toFixed(2)+" pp." : (el("alert-direction").value==="down"?"Notify when the gap falls to or below the threshold.":"Notify when the gap rises to or above the threshold.");
 }
 let stopReading = () => {};
 function showDistance() {
   if (!dialog.open) return;
-  const gap=latestGap(period.value,pair);
-  const threshold=el("alert-threshold");
+  const gap=latestGap(dailyFrame,pair);
+  const threshold = thresholdInput;
+  if (!threshold.value) suggestThreshold();
   el("current-gap").textContent = gap == null ? "—" : gap.toFixed(2)+" pp";
   const distance = Math.round((gap-threshold.valueAsNumber)*100);
-  el("gap-distance").textContent = gap == null ? "Waiting for a reading…" : !threshold.validity.valid ? "Enter a positive threshold." :
+  el("gap-distance").textContent = gap == null ? "Waiting for a reading…" : !threshold.validity.valid || !threshold.value ? "Enter a valid threshold." :
     (distance===0 ? "At threshold." : (Math.abs(distance)/100).toFixed(2)+" pp "+(distance>0?"above":"below")+" threshold.") +
     (el("alert-direction").value==="down" ? (distance<=0?" A new downward crossing requires a rise above the threshold first.":"") : (distance>=0?" A new upward crossing requires a drop below the threshold first.":""));
 }
-function followPeriod() {
+function followDailyGap() {
   stopReading();stopReading=()=>{};
   showDistance();
-  const frame=period.value;
-  if (frame===el("frame").value && latestGap(frame,pair)!=null) return;
+  const frame=dailyFrame;
+  if (latestGap(frame,pair)!=null) return;
   const live=document.documentElement.dataset.liveFeed;
   if (live && !fixtureMode) {
     const socket=new WebSocket(live+"?v="+frame+"&seconds=10");
@@ -196,11 +190,25 @@ function followPeriod() {
 }
 window.addEventListener("gap-reading",showDistance);
 const thresholdInput = el("alert-threshold");
+const directionInput = el("alert-direction");
+let thresholdEdited = false;
+function suggestThreshold() {
+  if (thresholdEdited || readRule(pair,dailyFrame)) return;
+  const gap = latestGap(dailyFrame,pair);
+  if (gap == null) return;
+  // Work in hundredths so exact tenths advance to the next crossing.
+  const hundredths = Math.round(gap * 100);
+  const tenths = directionInput.value === "down"
+    ? Math.max(0, Math.ceil(hundredths / 10) - 1)
+    : Math.floor(hundredths / 10) + 1;
+  thresholdInput.value = (tenths / 10).toFixed(2);
+}
 function formatThreshold() {
   if (thresholdInput.value && thresholdInput.validity.valid)
     thresholdInput.value = thresholdInput.valueAsNumber.toFixed(2);
 }
 thresholdInput.oninput = event => {
+  thresholdEdited = true;
   // Native steppers emit a plain input event; leave typed partial decimals alone.
   if (!(event instanceof InputEvent)) formatThreshold();
   showDistance();
@@ -209,18 +217,29 @@ thresholdInput.onblur = formatThreshold;
 thresholdInput.onkeydown = event => {
   if (!["ArrowUp","ArrowDown"].includes(event.key)) return;
   event.preventDefault();
+  thresholdEdited = true;
   if (event.key === "ArrowUp") thresholdInput.stepUp();
   else thresholdInput.stepDown();
   formatThreshold();
   showDistance();
 };
-el("alert-direction").onchange = () => {thresholdInput.min=el("alert-direction").value==="down"?"0":"0.01";sync();showDistance();};
-function loadThreshold() {
-  el("alert-direction").value=readRule(pair,period.value)?.direction ?? "up";
-  thresholdInput.min=el("alert-direction").value==="down"?"0":"0.01";
-  el("alert-threshold").value = (readRule(pair,period.value)?.threshold ?? 1).toFixed(2);
+function setThresholdMinimum() {
+  thresholdInput.min = directionInput.value === "down" ? "0" : "0.01";
+}
+directionInput.onchange = () => {
+  setThresholdMinimum();
+  suggestThreshold();
   sync();
-  followPeriod();
+  showDistance();
+};
+function loadThreshold() {
+  const rule = readRule(pair,dailyFrame);
+  directionInput.value = rule?.direction ?? "up";
+  setThresholdMinimum();
+  thresholdEdited = false;
+  thresholdInput.value = rule ? rule.threshold.toFixed(2) : "";
+  sync();
+  followDailyGap();
 }
 function alertsChanged() {
   window.dispatchEvent(new Event("gap-alerts-changed"));
@@ -235,8 +254,6 @@ table.onclick = event => {
   if (!button || busy || clearing) return;
   pair = button.closest("tr").dataset.pair;
   el("alert-title").textContent = pair+" gap alert";
-  const selected = button.dataset.frame || el("frame").value;
-  period.value = readRule(pair,selected) ? selected : framesFor(pair)[0]?.value || selected;
   dialog.showModal();
   loadThreshold();
   decorate();
@@ -247,7 +264,6 @@ dialog.addEventListener("close",()=>{
   (row?.querySelector(".alert-action") || filter).focus({preventScroll:true});
   pair=undefined;
 });
-period.onchange = loadThreshold;
 el("alert-close").onclick = () => {close();decorate();};
 dialog.addEventListener("cancel",event=>{if(busy) event.preventDefault();});
 async function deviceSubscription() {
@@ -270,7 +286,7 @@ el("test-notification").onclick=async()=>{
 };
 async function change(remove) {
   if (!pair || busy) return;
-  const name=pair, frame=period.value, direction=el("alert-direction").value, threshold=el("alert-threshold").valueAsNumber;
+  const name=pair, frame=dailyFrame, direction=el("alert-direction").value, threshold=el("alert-threshold").valueAsNumber;
   const key=ruleKey(name,frame);
   if (remove && !readRule(name,frame)) {
     localStorage.removeItem(watchKey(name));close();redraw();return;

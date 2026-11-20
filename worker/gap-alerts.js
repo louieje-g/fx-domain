@@ -49,7 +49,7 @@ export class GapAlerts {
       const parsed=JSON.parse(body);
       const {pair,frame,threshold,subscription,direction="up"}=request.method==="POST" ? {pair:"EUR/USD",frame:"1",threshold:1,subscription:parsed.subscription} : parsed;
       const url=new URL(subscription.endpoint);
-      if (!pairs.has(pair) || !/^[1-8]$/.test(frame) || !Number.isFinite(threshold) || !["up","down"].includes(direction) || threshold<0 || (threshold===0 && direction!=="down") ||
+      if (!pairs.has(pair) || frame !== "1" || !Number.isFinite(threshold) || !["up","down"].includes(direction) || threshold<0 || (threshold===0 && direction!=="down") ||
           url.protocol!=="https:" || url.username || url.password || url.port ||
           !/^(fcm\.googleapis\.com|(?:[a-z0-9-]+\.)*push\.apple\.com|(?:[a-z0-9-]+\.)*push\.services\.mozilla\.com|(?:[a-z0-9-]+\.)*notify\.windows\.com)$/.test(url.hostname) ||
           !/^[\w-]{87}$/.test(subscription.keys?.p256dh) || !/^[\w-]{22}$/.test(subscription.keys?.auth)) return reply(400);
